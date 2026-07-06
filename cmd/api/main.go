@@ -14,6 +14,7 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/hospitalityos/internal/application/reservation"
+	guesta "github.com/hospitalityos/internal/application/guest"
 	"github.com/hospitalityos/internal/infrastructure/eventstore"
 	"github.com/hospitalityos/internal/infrastructure/postgres"
 	httplib "github.com/hospitalityos/internal/interfaces/http"
@@ -33,7 +34,11 @@ func main() {
 	cancelHandler := reservation.NewCancelReservationHandler(reservationRepo)
 	reservationHandler := handlers.NewReservationHandler(createHandler, cancelHandler)
 
-	router := httplib.NewRouter(reservationHandler)
+	guestRepo := postgres.NewGuestRepository(dbPool, store)
+	createGuestHandler := guesta.NewCreateGuestHandler(guestRepo)
+	guestHandler := handlers.NewGuestHandler(createGuestHandler)
+
+	router := httplib.NewRouter(reservationHandler, guestHandler)
 
 	srv := &http.Server{
 		Addr:         ":8080",

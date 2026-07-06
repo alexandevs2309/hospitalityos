@@ -7,7 +7,7 @@ import (
 	"github.com/hospitalityos/internal/interfaces/http/middleware"
 )
 
-func NewRouter(reservationHandler *handlers.ReservationHandler) *chi.Mux {
+func NewRouter(reservationHandler *handlers.ReservationHandler, guestHandler *handlers.GuestHandler) *chi.Mux {
 	r := chi.NewRouter()
 
 	r.Use(chimw.Logger)
@@ -20,6 +20,7 @@ func NewRouter(reservationHandler *handlers.ReservationHandler) *chi.Mux {
 
 		r.Post("/reservations", reservationHandler.Create)
 		r.Post("/reservations/cancel", reservationHandler.Cancel)
+		r.Post("/guests", guestHandler.Create)
 	})
 
 	return r
