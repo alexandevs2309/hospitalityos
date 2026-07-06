@@ -1,0 +1,60 @@
+version: '3'
+
+tasks:
+  setup:
+    desc: "Full setup: start deps, migrate, seed"
+    cmds:
+      - task: docker-up
+      - task: migrate
+      - task: seed
+
+  dev:
+    desc: "Start API (requires deps running)"
+    cmds:
+      - go run ./cmd/api
+
+  up:
+    desc: "Start everything: deps + API"
+    cmds:
+      - task: docker-up
+      - task: dev
+
+  build:
+    desc: "Build all binaries"
+    cmds:
+      - go build ./...
+
+  test:
+    desc: "Run all tests"
+    cmds:
+      - go test ./... -count=1 -race
+
+  vet:
+    desc: "Run go vet"
+    cmds:
+      - go vet ./...
+
+  migrate:
+    desc: "Run database migrations"
+    cmds:
+      - go run ./cmd/migration
+
+  seed:
+    desc: "Seed database with test data"
+    cmds:
+      - go run ./scripts/seed.go
+
+  docker-up:
+    desc: "Start Docker services"
+    cmds:
+      - docker compose -f deploy/docker-compose.yml up -d
+
+  docker-down:
+    desc: "Stop Docker services"
+    cmds:
+      - docker compose -f deploy/docker-compose.yml down
+
+  docker-logs:
+    desc: "View Docker logs"
+    cmds:
+      - docker compose -f deploy/docker-compose.yml logs -f
