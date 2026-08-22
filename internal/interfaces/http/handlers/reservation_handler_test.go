@@ -25,7 +25,7 @@ func newRepo() *inMemoryReservationRepo {
 	return &inMemoryReservationRepo{store: eventstore.NewInMemoryStore()}
 }
 
-func (r *inMemoryReservationRepo) Save(ctx context.Context, res *reservation.Reservation) error {
+func (r *inMemoryReservationRepo) Save(_ context.Context, res *reservation.Reservation) error {
 	events := res.Uncommitted()
 	if len(events) > 0 {
 		if err := r.store.Save("reservation-"+res.ID(), events); err != nil {
@@ -36,7 +36,7 @@ func (r *inMemoryReservationRepo) Save(ctx context.Context, res *reservation.Res
 	return nil
 }
 
-func (r *inMemoryReservationRepo) Load(ctx context.Context, id string) (*reservation.Reservation, error) {
+func (r *inMemoryReservationRepo) Load(_ context.Context, id string) (*reservation.Reservation, error) {
 	events, err := r.store.Load("reservation-" + id)
 	if err != nil {
 		return nil, err
@@ -50,10 +50,13 @@ func TestCreateReservationViaHTTP(t *testing.T) {
 	repo := newRepo()
 	createHandler := app.NewCreateReservationHandler(repo)
 	cancelHandler := app.NewCancelReservationHandler(repo)
-	reservationHandler := handlers.NewReservationHandler(createHandler, cancelHandler)
-
-	emptyGuestHandler := handlers.NewGuestHandler(nil)
-	router := httplib.NewRouter(reservationHandler, emptyGuestHandler)
+	reservationHandler := handlers.NewReservationHandler(createHandler, cancelHandler, nil)
+	guestHandler := handlers.NewGuestHandler(nil, nil)
+	roomHandler := handlers.NewRoomHandler(nil)
+	roomTypeHandler := handlers.NewRoomTypeHandler(nil)
+	rateHandler := handlers.NewRateHandler(nil)
+	availabilityHandler := handlers.NewAvailabilityHandler(nil)
+	router := httplib.NewRouter(reservationHandler, guestHandler, roomHandler, roomTypeHandler, rateHandler, availabilityHandler)
 	server := httptest.NewServer(router)
 	defer server.Close()
 
@@ -63,8 +66,8 @@ func TestCreateReservationViaHTTP(t *testing.T) {
 		"guest_id":       "guest-1",
 		"room_id":        "room-1",
 		"rate_id":        "rate-1",
-		"check_in":       now.Format(time.RFC3339),
-		"check_out":      now.Add(48 * time.Hour).Format(time.RFC3339),
+		"check_in":       now.Format("2006-01-02"),
+		"check_out":      now.Add(48 * time.Hour).Format("2006-01-02"),
 		"adults":         2,
 		"children":       0,
 		"total_cents":    20000,

@@ -19,29 +19,49 @@ import (
 	"github.com/hospitalityos/internal/infrastructure/postgres"
 	httplib "github.com/hospitalityos/internal/interfaces/http"
 	"github.com/hospitalityos/internal/interfaces/http/handlers"
+	"github.com/hospitalityos/pkg/es"
 )
 
 func main() {
-	store := eventstore.NewInMemoryStore()
-
 	dbPool := setupDatabase()
 	defer dbPool.Close()
 
 	runMigrations(dbPool)
 
+	var store es.EventStore
+	if os.Getenv("DATABASE_URL") != "" {
+		store = eventstore.NewPGStore(dbPool)
+		log.Printf("event store: PostgreSQL")
+	} else {
+		store = eventstore.NewInMemoryStore()
+		log.Printf("event store: in-memory (DATABASE_URL not set)")
+	}
+
 	reservationRepo := postgres.NewReservationRepository(dbPool, store)
-	createHandler := reservation.NewCreateReservationHandler(reservationRepo)
-	cancelHandler := reservation.NewCancelReservationHandler(reservationRepo)
-	reservationHandler := handlers.NewReservationHandler(createHandler, cancelHandler)
+	createResHandler := reservation.NewCreateReservationHandler(reservationRepo)
+	cancelResHandler := reservation.NewCancelReservationHandler(reservationRepo)
+	reservationHandler := handlers.NewReservationHandler(createResHandler, cancelResHandler, dbPool)
 
 	guestRepo := postgres.NewGuestRepository(dbPool, store)
 	createGuestHandler := guesta.NewCreateGuestHandler(guestRepo)
-	guestHandler := handlers.NewGuestHandler(createGuestHandler)
+	guestHandler := handlers.NewGuestHandler(createGuestHandler, dbPool)
 
-	router := httplib.NewRouter(reservationHandler, guestHandler)
+	roomHandler := handlers.NewRoomHandler(dbPool)
+	roomTypeHandler := handlers.NewRoomTypeHandler(dbPool)
+	rateHandler := handlers.NewRateHandler(dbPool)
+	availabilityHandler := handlers.NewAvailabilityHandler(dbPool)
+
+	router := httplib.NewRouter(
+		reservationHandler,
+		guestHandler,
+		roomHandler,
+		roomTypeHandler,
+		rateHandler,
+		availabilityHandler,
+	)
 
 	srv := &http.Server{
-		Addr:         ":8080",
+		Addr:         ":8081",
 		Handler:      router,
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 15 * time.Second,
@@ -52,7 +72,7 @@ func main() {
 	signal.Notify(done, os.Interrupt, syscall.SIGTERM)
 
 	go func() {
-		log.Printf("Hospitality OS API starting on :8080")
+		log.Printf("Hospitality OS API starting on :8081")
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("server error: %v", err)
 		}

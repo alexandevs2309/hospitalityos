@@ -10,6 +10,7 @@ const (
 	MXN Currency = "MXN"
 	GBP Currency = "GBP"
 	ARS Currency = "ARS"
+	DOP Currency = "DOP"
 )
 
 type Money struct {
