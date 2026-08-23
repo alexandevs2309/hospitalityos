@@ -27,6 +27,7 @@ func NewRouter(
 	staffHandler *handlers.StaffHandler,
 	maintenanceHandler *handlers.MaintenanceHandler,
 	reportHandler *handlers.ReportHandler,
+	whatsappHandler *handlers.WhatsAppHandler,
 	pool *pgxpool.Pool,
 ) *chi.Mux {
 	r := chi.NewRouter()
@@ -45,6 +46,11 @@ func NewRouter(
 	r.Post("/auth/refresh", authHandler.Refresh)
 	r.Post("/auth/logout", authHandler.Logout)
 	r.Post("/auth/seed-admin", authHandler.SeedAdmin)
+
+	r.Route("/webhooks", func(r chi.Router) {
+		r.Get("/whatsapp", whatsappHandler.VerifyWebhook)
+		r.Post("/whatsapp", whatsappHandler.HandleWebhook)
+	})
 
 	r.Route("/v1", func(r chi.Router) {
 		r.Use(middleware.Auth)
@@ -113,6 +119,9 @@ func NewRouter(
 			r.Get("/reports/occupancy", reportHandler.Occupancy)
 			r.Get("/reports/revenue", reportHandler.Revenue)
 			r.Get("/reports/guest-stats", reportHandler.GuestStats)
+
+			r.Post("/whatsapp/send", whatsappHandler.SendMessage)
+			r.Get("/whatsapp/messages", whatsappHandler.ListMessages)
 		})
 
 		r.Group(func(r chi.Router) {
