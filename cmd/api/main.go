@@ -61,6 +61,7 @@ func main() {
 	availabilityHandler := handlers.NewAvailabilityHandler(pool)
 	authHandler := handlers.NewAuthHandler(pool)
 	frontDeskHandler := handlers.NewFrontDeskHandler(pool)
+	folioHandler := handlers.NewFolioHandler(pool)
 
 	router := httplib.NewRouter(
 		reservationHandler,
@@ -71,6 +72,7 @@ func main() {
 		availabilityHandler,
 		authHandler,
 		frontDeskHandler,
+		folioHandler,
 		pool,
 	)
 
