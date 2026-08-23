@@ -30,6 +30,7 @@ func NewRouter(
 	whatsappHandler *handlers.WhatsAppHandler,
 	offlineHandler *handlers.OfflineHandler,
 	i18nHandler *handlers.I18nHandler,
+	paymentGatewayHandler *handlers.PaymentGatewayHandler,
 	pool *pgxpool.Pool,
 ) *chi.Mux {
 	r := chi.NewRouter()
@@ -54,6 +55,7 @@ func NewRouter(
 	r.Route("/webhooks", func(r chi.Router) {
 		r.Get("/whatsapp", whatsappHandler.VerifyWebhook)
 		r.Post("/whatsapp", whatsappHandler.HandleWebhook)
+		r.Post("/stripe", paymentGatewayHandler.HandleWebhook)
 	})
 
 	r.Route("/v1", func(r chi.Router) {
@@ -134,6 +136,10 @@ func NewRouter(
 
 			r.Get("/i18n/translations", i18nHandler.GetTranslations)
 			r.Get("/i18n/languages", i18nHandler.GetLanguages)
+
+			r.Post("/payments/intent", paymentGatewayHandler.CreatePaymentIntent)
+			r.Post("/payments/confirm", paymentGatewayHandler.ConfirmPayment)
+			r.Post("/payments/refund", paymentGatewayHandler.CreateRefund)
 		})
 
 		r.Group(func(r chi.Router) {

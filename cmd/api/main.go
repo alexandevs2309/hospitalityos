@@ -73,6 +73,7 @@ func main() {
 	whatsappHandler := handlers.NewWhatsAppHandler(pool, nil)
 	offlineHandler := handlers.NewOfflineHandler(pool)
 	i18nHandler := handlers.NewI18nHandler()
+	paymentGatewayHandler := handlers.NewPaymentGatewayHandler(pool, nil)
 
 	router := httplib.NewRouter(
 		reservationHandler,
@@ -95,6 +96,7 @@ func main() {
 		whatsappHandler,
 		offlineHandler,
 		i18nHandler,
+		paymentGatewayHandler,
 		pool,
 	)
 
