@@ -1,0 +1,483 @@
+openapi: 3.0.3
+info:
+  title: HospitalityOS API
+  description: Hotel Management Platform API
+  version: 1.0.0
+servers:
+  - url: http://localhost:8081
+    description: Local development
+tags:
+  - name: Auth
+  - name: Rooms
+  - name: Reservations
+  - name: Guests
+  - name: Front Desk
+  - name: Folio
+  - name: Payments
+  - name: Housekeeping
+  - name: Maintenance
+  - name: Staff
+  - name: Reports
+  - name: WhatsApp
+  - name: i18n
+  - name: Offline
+paths:
+  /health:
+    get:
+      summary: Health check
+      tags: [System]
+      responses:
+        '200':
+          description: Healthy
+  /auth/login:
+    post:
+      summary: Login
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username, password]
+              properties:
+                username:
+                  type: string
+                password:
+                  type: string
+      responses:
+        '200':
+          description: JWT tokens
+  /auth/refresh:
+    post:
+      summary: Refresh token
+      tags: [Auth]
+      responses:
+        '200':
+          description: New access token
+  /v1/rooms:
+    get:
+      summary: List rooms
+      tags: [Rooms]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Room list
+    post:
+      summary: Create room
+      tags: [Rooms]
+      security:
+        - bearerAuth: []
+      responses:
+        '201':
+          description: Room created
+  /v1/reservations:
+    get:
+      summary: List reservations
+      tags: [Reservations]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Reservation list
+    post:
+      summary: Create reservation
+      tags: [Reservations]
+      security:
+        - bearerAuth: []
+      responses:
+        '201':
+          description: Reservation created
+  /v1/guests:
+    get:
+      summary: List guests
+      tags: [Guests]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Guest list
+    post:
+      summary: Create guest
+      tags: [Guests]
+      security:
+        - bearerAuth: []
+      responses:
+        '201':
+          description: Guest created
+  /v1/guests/{id}/profile:
+    get:
+      summary: Guest profile 360
+      tags: [Guests]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Full guest profile
+  /v1/frontdesk/today:
+    get:
+      summary: Front desk overview
+      tags: [Front Desk]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Today overview
+  /v1/reservations/{id}/folio:
+    get:
+      summary: Get folio
+      tags: [Folio]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Guest folio
+  /v1/reservations/{id}/folio/entries:
+    post:
+      summary: Add folio entry
+      tags: [Folio]
+      security:
+        - bearerAuth: []
+      responses:
+        '201':
+          description: Entry added
+  /v1/reservations/{id}/folio/close:
+    post:
+      summary: Close folio
+      tags: [Folio]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Folio closed
+  /v1/payments:
+    post:
+      summary: Record payment
+      tags: [Payments]
+      security:
+        - bearerAuth: []
+      responses:
+        '201':
+          description: Payment with receipt
+    get:
+      summary: List payments
+      tags: [Payments]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Payment list
+  /v1/payments/{id}/receipt:
+    get:
+      summary: Get receipt
+      tags: [Payments]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Payment receipt
+  /v1/payments/intent:
+    post:
+      summary: Create Stripe payment intent
+      tags: [Payments]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Payment intent with client secret
+  /v1/payments/confirm:
+    post:
+      summary: Confirm Stripe payment
+      tags: [Payments]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Payment confirmed
+  /v1/payments/refund:
+    post:
+      summary: Process refund
+      tags: [Payments]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Refund processed
+  /v1/housekeeping/tasks:
+    get:
+      summary: List housekeeping tasks
+      tags: [Housekeeping]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Task list
+    post:
+      summary: Create housekeeping task
+      tags: [Housekeeping]
+      security:
+        - bearerAuth: []
+      responses:
+        '201':
+          description: Task created
+  /v1/housekeeping/tasks/{id}/status:
+    patch:
+      summary: Update task status
+      tags: [Housekeeping]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Status updated
+  /v1/maintenance:
+    get:
+      summary: List maintenance requests
+      tags: [Maintenance]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Request list
+    post:
+      summary: Create maintenance request
+      tags: [Maintenance]
+      security:
+        - bearerAuth: []
+      responses:
+        '201':
+          description: Request created
+  /v1/maintenance/{id}/status:
+    patch:
+      summary: Update maintenance status
+      tags: [Maintenance]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Status updated
+  /v1/staff:
+    get:
+      summary: List staff
+      tags: [Staff]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Staff list
+    post:
+      summary: Create staff member
+      tags: [Staff]
+      security:
+        - bearerAuth: []
+      responses:
+        '201':
+          description: Staff created
+  /v1/staff/{id}/role:
+    patch:
+      summary: Update staff role
+      tags: [Staff]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Role updated
+  /v1/night-audit/run:
+    post:
+      summary: Run night audit
+      tags: [Reports]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Audit completed
+  /v1/rate-seasons:
+    get:
+      summary: List rate seasons
+      tags: [Rooms]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Season list
+    post:
+      summary: Create rate season
+      tags: [Rooms]
+      security:
+        - bearerAuth: []
+      responses:
+        '201':
+          description: Season created
+  /v1/reports/dashboard:
+    get:
+      summary: Dashboard summary
+      tags: [Reports]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Dashboard metrics
+  /v1/reports/occupancy:
+    get:
+      summary: Occupancy report
+      tags: [Reports]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Occupancy stats
+  /v1/reports/revenue:
+    get:
+      summary: Revenue report
+      tags: [Reports]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Revenue stats
+  /v1/reports/guest-stats:
+    get:
+      summary: Guest statistics
+      tags: [Reports]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Guest stats
+  /v1/whatsapp/send:
+    post:
+      summary: Send WhatsApp message
+      tags: [WhatsApp]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Message sent
+  /v1/whatsapp/messages:
+    get:
+      summary: List WhatsApp messages
+      tags: [WhatsApp]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Message list
+  /v1/guests/{id}/preferences:
+    post:
+      summary: Set guest preference
+      tags: [Guests]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Preference saved
+  /v1/guests/{id}/tags:
+    post:
+      summary: Add guest tag
+      tags: [Guests]
+      security:
+        - bearerAuth: []
+      responses:
+        '201':
+          description: Tag added
+  /v1/guests/{id}/tags/{tag}:
+    delete:
+      summary: Remove guest tag
+      tags: [Guests]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Tag removed
+  /v1/i18n/translations:
+    get:
+      summary: Get translations
+      tags: [i18n]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Translations
+  /v1/i18n/languages:
+    get:
+      summary: List languages
+      tags: [i18n]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Available languages
+  /v1/offline/sync/push:
+    post:
+      summary: Push offline changes
+      tags: [Offline]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Changes queued
+  /v1/offline/sync/pull:
+    get:
+      summary: Pull pending sync items
+      tags: [Offline]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Pending items
+  /v1/offline/sync/ack:
+    post:
+      summary: Acknowledge synced items
+      tags: [Offline]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Acknowledged
+  /v1/offline/bootstrap:
+    get:
+      summary: Bootstrap offline data
+      tags: [Offline]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Bootstrap data
+  /webhooks/whatsapp:
+    get:
+      summary: Verify WhatsApp webhook
+      tags: [Webhooks]
+      responses:
+        '200':
+          description: Challenge response
+    post:
+      summary: Handle WhatsApp webhook
+      tags: [Webhooks]
+      responses:
+        '200':
+          description: Webhook processed
+  /webhooks/stripe:
+    post:
+      summary: Handle Stripe webhook
+      tags: [Webhooks]
+      responses:
+        '200':
+          description: Webhook processed
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
