@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
@@ -16,6 +17,7 @@ import (
 	"github.com/hospitalityos/internal/application/reservation"
 	guesta "github.com/hospitalityos/internal/application/guest"
 	"github.com/hospitalityos/internal/infrastructure/eventstore"
+	"github.com/hospitalityos/internal/infrastructure/observability"
 	"github.com/hospitalityos/internal/infrastructure/postgres"
 	httplib "github.com/hospitalityos/internal/interfaces/http"
 	"github.com/hospitalityos/internal/interfaces/http/handlers"
@@ -23,33 +25,41 @@ import (
 )
 
 func main() {
-	dbPool := setupDatabase()
-	defer dbPool.Close()
+	logger := observability.NewLogger()
+	slog.SetDefault(logger)
 
-	runMigrations(dbPool)
-
-	var store es.EventStore
-	if os.Getenv("DATABASE_URL") != "" {
-		store = eventstore.NewPGStore(dbPool)
-		log.Printf("event store: PostgreSQL")
-	} else {
-		store = eventstore.NewInMemoryStore()
-		log.Printf("event store: in-memory (DATABASE_URL not set)")
+	connStr := os.Getenv("DATABASE_URL")
+	if connStr == "" {
+		log.Fatal("FATAL: DATABASE_URL environment variable is required")
+	}
+	jwtSecret := os.Getenv("JWT_SECRET")
+	if jwtSecret == "" {
+		log.Fatal("FATAL: JWT_SECRET environment variable is required")
 	}
 
-	reservationRepo := postgres.NewReservationRepository(dbPool, store)
+	pool := setupDatabase(connStr)
+	defer pool.Close()
+
+	runMigrations(pool)
+
+	var store es.EventStore
+	store = eventstore.NewPGStore(pool)
+	slog.Info("event store: PostgreSQL")
+
+	reservationRepo := postgres.NewReservationRepository(pool, store)
 	createResHandler := reservation.NewCreateReservationHandler(reservationRepo)
 	cancelResHandler := reservation.NewCancelReservationHandler(reservationRepo)
-	reservationHandler := handlers.NewReservationHandler(createResHandler, cancelResHandler, dbPool)
+	reservationHandler := handlers.NewReservationHandler(createResHandler, cancelResHandler, pool)
 
-	guestRepo := postgres.NewGuestRepository(dbPool, store)
+	guestRepo := postgres.NewGuestRepository(pool, store)
 	createGuestHandler := guesta.NewCreateGuestHandler(guestRepo)
-	guestHandler := handlers.NewGuestHandler(createGuestHandler, dbPool)
+	guestHandler := handlers.NewGuestHandler(createGuestHandler, pool)
 
-	roomHandler := handlers.NewRoomHandler(dbPool)
-	roomTypeHandler := handlers.NewRoomTypeHandler(dbPool)
-	rateHandler := handlers.NewRateHandler(dbPool)
-	availabilityHandler := handlers.NewAvailabilityHandler(dbPool)
+	roomHandler := handlers.NewRoomHandler(pool)
+	roomTypeHandler := handlers.NewRoomTypeHandler(pool)
+	rateHandler := handlers.NewRateHandler(pool)
+	availabilityHandler := handlers.NewAvailabilityHandler(pool)
+	authHandler := handlers.NewAuthHandler(pool)
 
 	router := httplib.NewRouter(
 		reservationHandler,
@@ -58,6 +68,8 @@ func main() {
 		roomTypeHandler,
 		rateHandler,
 		availabilityHandler,
+		authHandler,
+		pool,
 	)
 
 	srv := &http.Server{
@@ -72,22 +84,24 @@ func main() {
 	signal.Notify(done, os.Interrupt, syscall.SIGTERM)
 
 	go func() {
-		log.Printf("Hospitality OS API starting on :8081")
+		slog.Info("Hospitality OS API starting", "addr", ":8081")
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("server error: %v", err)
+			slog.Error("server error", "err", err)
+			os.Exit(1)
 		}
 	}()
 
 	<-done
-	log.Println("shutting down...")
+	slog.Info("shutting down...")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
 	if err := srv.Shutdown(ctx); err != nil {
-		log.Fatalf("shutdown error: %v", err)
+		slog.Error("shutdown error", "err", err)
+		os.Exit(1)
 	}
-	log.Println("server stopped")
+	slog.Info("server stopped")
 }
 
 func runMigrations(pool *pgxpool.Pool) {
@@ -126,15 +140,11 @@ func runMigrations(pool *pgxpool.Pool) {
 			}
 		}
 		pool.Exec(context.Background(), "INSERT INTO schema_migrations (filename) VALUES ($1)", name)
-		log.Printf("migration applied: %s", name)
+		slog.Info("migration applied", "file", name)
 	}
 }
 
-func setupDatabase() *pgxpool.Pool {
-	connStr := os.Getenv("DATABASE_URL")
-	if connStr == "" {
-		connStr = "postgres://dev:dev@localhost:5432/hospitality?sslmode=disable"
-	}
+func setupDatabase(connStr string) *pgxpool.Pool {
 	pool, err := postgres.NewPool(context.Background(), connStr)
 	if err != nil {
 		log.Fatalf("database connection failed: %v", err)

@@ -100,3 +100,11 @@ func (r *Room) handleCreated(e RoomCreated) {
 	r.floor = e.Floor
 	r.status = Status(e.Status)
 }
+
+func IsValidStatus(s Status) bool {
+	switch s {
+	case StatusAvailable, StatusOccupied, StatusCleaning, StatusMaintenance:
+		return true
+	}
+	return false
+}

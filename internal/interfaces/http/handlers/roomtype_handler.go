@@ -20,7 +20,7 @@ func NewRoomTypeHandler(pool *pgxpool.Pool) *RoomTypeHandler {
 func (h *RoomTypeHandler) List(w http.ResponseWriter, r *http.Request) {
 	tenantID := httputil.ExtractTenantID(r)
 	if tenantID == "" {
-		httputil.Error(w, http.StatusBadRequest, "tenant_id required")
+		httputil.Unauthorized(w, "tenant_id required")
 		return
 	}
 	ctx := r.Context()
@@ -28,7 +28,7 @@ func (h *RoomTypeHandler) List(w http.ResponseWriter, r *http.Request) {
 		`SELECT id, tenant_id, name, capacity, base_price_cents, currency, amenities FROM room_types WHERE tenant_id=$1 ORDER BY name`,
 		tenantID)
 	if err != nil {
-		httputil.Error(w, http.StatusInternalServerError, err.Error())
+		httputil.InternalServerError(w, "failed to query room types")
 		return
 	}
 	defer rows.Close()
@@ -46,7 +46,7 @@ func (h *RoomTypeHandler) List(w http.ResponseWriter, r *http.Request) {
 	for rows.Next() {
 		var rt rtResp
 		if err := rows.Scan(&rt.ID, &rt.TenantID, &rt.Name, &rt.Capacity, &rt.BasePriceCents, &rt.Currency, &rt.Amenities); err != nil {
-			httputil.Error(w, http.StatusInternalServerError, err.Error())
+			httputil.InternalServerError(w, "failed to scan room type")
 			return
 		}
 		rts = append(rts, rt)
@@ -59,6 +59,7 @@ func (h *RoomTypeHandler) List(w http.ResponseWriter, r *http.Request) {
 
 func (h *RoomTypeHandler) Get(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
+	tenantID := httputil.ExtractTenantID(r)
 	ctx := r.Context()
 	var rt struct {
 		ID             string `json:"id"`
@@ -70,10 +71,10 @@ func (h *RoomTypeHandler) Get(w http.ResponseWriter, r *http.Request) {
 		Amenities      string `json:"amenities"`
 	}
 	err := h.pool.QueryRow(ctx,
-		`SELECT id, tenant_id, name, capacity, base_price_cents, currency, amenities FROM room_types WHERE id=$1`, id).
+		`SELECT id, tenant_id, name, capacity, base_price_cents, currency, amenities FROM room_types WHERE id=$1 AND tenant_id=$2`, id, tenantID).
 		Scan(&rt.ID, &rt.TenantID, &rt.Name, &rt.Capacity, &rt.BasePriceCents, &rt.Currency, &rt.Amenities)
 	if err != nil {
-		httputil.Error(w, http.StatusNotFound, "room type not found")
+		httputil.NotFound(w, "room type not found")
 		return
 	}
 	httputil.JSON(w, http.StatusOK, rt)
@@ -82,7 +83,7 @@ func (h *RoomTypeHandler) Get(w http.ResponseWriter, r *http.Request) {
 func (h *RoomTypeHandler) Create(w http.ResponseWriter, r *http.Request) {
 	tenantID := httputil.ExtractTenantID(r)
 	if tenantID == "" {
-		httputil.Error(w, http.StatusBadRequest, "tenant_id required")
+		httputil.Unauthorized(w, "tenant_id required")
 		return
 	}
 	var input struct {
@@ -93,11 +94,11 @@ func (h *RoomTypeHandler) Create(w http.ResponseWriter, r *http.Request) {
 		Amenities      string `json:"amenities"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
-		httputil.Error(w, http.StatusBadRequest, "invalid body")
+		httputil.BadRequest(w, "invalid body")
 		return
 	}
 	if input.Name == "" {
-		httputil.Error(w, http.StatusBadRequest, "name required")
+		httputil.BadRequest(w, "name required")
 		return
 	}
 	if input.Capacity < 1 {
@@ -111,7 +112,7 @@ func (h *RoomTypeHandler) Create(w http.ResponseWriter, r *http.Request) {
 		`INSERT INTO room_types (id, tenant_id, name, capacity, base_price_cents, currency, amenities, created_at) VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())`,
 		id, tenantID, input.Name, input.Capacity, input.BasePriceCents, input.Currency, input.Amenities)
 	if err != nil {
-		httputil.Error(w, http.StatusInternalServerError, err.Error())
+		httputil.InternalServerError(w, "failed to create room type")
 		return
 	}
 	httputil.JSON(w, http.StatusCreated, map[string]string{"id": id})

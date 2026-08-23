@@ -5,8 +5,6 @@ import (
 	"encoding/json"
 	"net/http"
 	"time"
-
-	"github.com/hospitalityos/internal/interfaces/http/middleware"
 )
 
 type contextKey string
@@ -14,7 +12,10 @@ type contextKey string
 const TenantIDKey contextKey = "tenant_id"
 
 func ExtractTenantID(r *http.Request) string {
-	return middleware.TenantFromContext(r.Context())
+	if v, ok := r.Context().Value(TenantIDKey).(string); ok {
+		return v
+	}
+	return ""
 }
 
 func JSON(w http.ResponseWriter, status int, data interface{}) {

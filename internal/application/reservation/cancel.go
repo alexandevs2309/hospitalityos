@@ -8,6 +8,7 @@ import (
 
 type CancelReservationCommand struct {
 	ReservationID string
+	TenantID      string
 }
 
 type CancelReservationHandler struct {
@@ -22,6 +23,9 @@ func (h *CancelReservationHandler) Handle(ctx context.Context, cmd CancelReserva
 	r, err := h.repo.Load(ctx, cmd.ReservationID)
 	if err != nil {
 		return err
+	}
+	if r.TenantID() != cmd.TenantID {
+		return domain.ErrNotFound
 	}
 	if err := r.Cancel(); err != nil {
 		return err

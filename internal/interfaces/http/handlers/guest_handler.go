@@ -32,7 +32,11 @@ type CreateGuestRequest struct {
 func (h *GuestHandler) Create(w http.ResponseWriter, r *http.Request) {
 	var req CreateGuestRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "invalid request body", http.StatusBadRequest)
+		httputil.BadRequest(w, "invalid request body")
+		return
+	}
+	if req.Email == "" || req.FirstName == "" {
+		httputil.BadRequest(w, "email and first_name required")
 		return
 	}
 
@@ -47,18 +51,17 @@ func (h *GuestHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.createHandler.Handle(r.Context(), cmd); err != nil {
-		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
+		httputil.Conflict(w, err.Error())
 		return
 	}
 
-	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(map[string]string{"id": req.GuestID})
+	httputil.JSON(w, http.StatusCreated, map[string]string{"id": req.GuestID})
 }
 
 func (h *GuestHandler) List(w http.ResponseWriter, r *http.Request) {
 	tenantID := httputil.ExtractTenantID(r)
 	if tenantID == "" {
-		httputil.Error(w, http.StatusBadRequest, "tenant_id required")
+		httputil.Unauthorized(w, "tenant_id required")
 		return
 	}
 
@@ -77,7 +80,7 @@ func (h *GuestHandler) List(w http.ResponseWriter, r *http.Request) {
 			tenantID)
 	}
 	if err != nil {
-		httputil.Error(w, http.StatusInternalServerError, err.Error())
+		httputil.InternalServerError(w, "failed to query guests")
 		return
 	}
 	defer rows.Close()
@@ -94,7 +97,7 @@ func (h *GuestHandler) List(w http.ResponseWriter, r *http.Request) {
 	for rows.Next() {
 		var g guestResp
 		if err := rows.Scan(&g.ID, &g.TenantID, &g.FirstName, &g.LastName, &g.Email, &g.Phone); err != nil {
-			httputil.Error(w, http.StatusInternalServerError, err.Error())
+			httputil.InternalServerError(w, "failed to scan guest")
 			return
 		}
 		guests = append(guests, g)
@@ -107,6 +110,7 @@ func (h *GuestHandler) List(w http.ResponseWriter, r *http.Request) {
 
 func (h *GuestHandler) Get(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
+	tenantID := httputil.ExtractTenantID(r)
 	ctx := r.Context()
 
 	var g struct {
@@ -118,10 +122,10 @@ func (h *GuestHandler) Get(w http.ResponseWriter, r *http.Request) {
 		Phone     string `json:"phone"`
 	}
 	err := h.pool.QueryRow(ctx,
-		`SELECT id, tenant_id, first_name, last_name, email, phone FROM guests WHERE id=$1`, id).
+		`SELECT id, tenant_id, first_name, last_name, email, phone FROM guests WHERE id=$1 AND tenant_id=$2`, id, tenantID).
 		Scan(&g.ID, &g.TenantID, &g.FirstName, &g.LastName, &g.Email, &g.Phone)
 	if err != nil {
-		httputil.Error(w, http.StatusNotFound, "guest not found")
+		httputil.NotFound(w, "guest not found")
 		return
 	}
 	httputil.JSON(w, http.StatusOK, g)

@@ -131,7 +131,11 @@ func (r *Reservation) Load(events []es.Event) {
 	}
 }
 
-func (r *Reservation) ID() string { return r.id }
+func (r *Reservation) ID() string      { return r.id }
+func (r *Reservation) TenantID() string { return r.tenantID }
+func (r *Reservation) RoomID() string   { return r.roomID }
+func (r *Reservation) CheckIn() time.Time  { return r.checkIn }
+func (r *Reservation) CheckOut() time.Time { return r.checkOut }
 
 func (r *Reservation) handleCreated(e ReservationCreated) {
 	r.tenantID = e.TenantID

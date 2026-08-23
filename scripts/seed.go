@@ -13,7 +13,7 @@ import (
 func main() {
 	connStr := os.Getenv("DATABASE_URL")
 	if connStr == "" {
-		connStr = "postgres://dev:dev@localhost:5432/hospitality?sslmode=disable"
+		log.Fatal("FATAL: DATABASE_URL environment variable is required")
 	}
 
 	pool, err := pgxpool.New(context.Background(), connStr)
@@ -26,7 +26,6 @@ func main() {
 	start := time.Now()
 	end := start.Add(365 * 24 * time.Hour)
 
-	// -- TENANT --
 	_, err = pool.Exec(context.Background(), `
 		INSERT INTO tenants (id, name, slug, timezone, currency)
 		VALUES ($1, 'Edén Hotel Santa Bárbara Samaná', 'eden-hotel-samana', 'America/Santo_Domingo', 'DOP')
@@ -37,7 +36,6 @@ func main() {
 	}
 	fmt.Println("OK  Edén Hotel Santa Bárbara Samaná (DOP)")
 
-	// -- ROOM TYPES --
 	type roomType struct {
 		id       string
 		name     string
@@ -75,7 +73,6 @@ func main() {
 		fmt.Printf("OK  %s — DOP %d/noche\n", rt.name, rt.price)
 	}
 
-	// -- ROOMS --
 	type room struct {
 		id     string
 		rtID   string
@@ -83,20 +80,17 @@ func main() {
 		floor  string
 	}
 	rooms := []room{
-		// Planta baja
 		{"rm-101", "rt-estandar", "101", "1"},
 		{"rm-102", "rt-estandar", "102", "1"},
 		{"rm-103", "rt-estandar", "103", "1"},
 		{"rm-104", "rt-estandar", "104", "1"},
 		{"rm-105", "rt-superior", "105", "1"},
 		{"rm-106", "rt-superior", "106", "1"},
-		// Segundo piso
 		{"rm-201", "rt-estandar", "201", "2"},
 		{"rm-202", "rt-estandar", "202", "2"},
 		{"rm-203", "rt-superior", "203", "2"},
 		{"rm-204", "rt-superior", "204", "2"},
 		{"rm-205", "rt-deluxe", "205", "2"},
-		// Tercer piso
 		{"rm-301", "rt-deluxe", "301", "3"},
 		{"rm-302", "rt-deluxe", "302", "3"},
 		{"rm-303", "rt-suite", "303", "3"},
@@ -116,7 +110,6 @@ func main() {
 	}
 	fmt.Printf("OK  %d habitaciones\n", len(rooms))
 
-	// -- SAMPLE GUESTS --
 	type sampleGuest struct {
 		id        string
 		email     string
