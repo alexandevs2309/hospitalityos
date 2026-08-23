@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"time"
@@ -152,6 +153,31 @@ func (h *FiscalHandler) IssueReceipt(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *FiscalHandler) submitToDGII(receiptID, tenantID, rnc, ncf string, ncfType fiscal.NCFType, taxes fiscal.TaxBreakdown) {
+	ctx := context.Background()
+
+	req := fiscal.ECFRequest{
+		RNC:          rnc,
+		NCF:          ncf,
+		NCFType:      string(ncfType),
+		RNCDestino:   rnc,
+		FechaEmision: time.Now().Format("2006-01-02"),
+		MontoTotal:   taxes.TotalCents,
+		MontoGravado: taxes.SubtotalCents,
+		ITBIS:        taxes.ITBISCents,
+		Propina:      taxes.PropinaCents,
+		FormaPago:    "efectivo",
+		TipoPago:     "contado",
+	}
+
+	resp, err := h.dgii.SubmitECF(req)
+	if err != nil {
+		h.pool.Exec(ctx, `UPDATE fiscal_receipts SET dgii_status='error' WHERE id=$1 AND tenant_id=$2`,
+			receiptID, tenantID)
+		return
+	}
+
+	h.pool.Exec(ctx, `UPDATE fiscal_receipts SET dgii_status=$1, dgii_track_id=$2 WHERE id=$3 AND tenant_id=$4`,
+		resp.Estado, resp.TrackID, receiptID, tenantID)
 }
 
 func (h *FiscalHandler) ValidateRNC(w http.ResponseWriter, r *http.Request) {

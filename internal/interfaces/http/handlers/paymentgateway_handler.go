@@ -181,7 +181,19 @@ func (h *PaymentGatewayHandler) handlePaymentSucceeded(ctx context.Context, inte
 }
 
 func (h *PaymentGatewayHandler) handlePaymentFailed(ctx context.Context, intent paymentgateway.PaymentIntent) {
+	if tenantID, ok := intent.Metadata["tenant_id"]; ok {
+		if reservationID, ok := intent.Metadata["reservation_id"]; ok {
+			h.pool.Exec(ctx, `
+				INSERT INTO payments (id, tenant_id, reservation_id, method, amount_cents, currency, reference, status, created_at, updated_at)
+				VALUES (gen_random_uuid(), $1, $2, 'card', $3, $4, $5, 'failed', NOW(), NOW())
+			`, tenantID, reservationID, intent.Amount, intent.Currency, intent.ID)
+		}
+	}
 }
 
 func (h *PaymentGatewayHandler) handleRefund(ctx context.Context, charge paymentgateway.Charge) {
+	h.pool.Exec(ctx, `
+		UPDATE payments SET status = 'refunded', updated_at = NOW()
+		WHERE reference = $1 AND status = 'completed'
+	`, charge.PaymentIntent)
 }

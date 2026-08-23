@@ -6,6 +6,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/hospitalityos/internal/infrastructure/auth"
 	"github.com/hospitalityos/pkg/httputil"
 )
 
@@ -133,7 +134,12 @@ func (h *StaffHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	var pinHash string
 	if req.PIN != "" {
-		pinHash = simpleHash(req.PIN)
+		hash, err := auth.HashPassword(req.PIN)
+		if err != nil {
+			httputil.InternalServerError(w, "failed to hash PIN")
+			return
+		}
+		pinHash = hash
 	}
 
 	_, err := h.pool.Exec(ctx, `
@@ -186,12 +192,4 @@ func (h *StaffHandler) UpdateRole(w http.ResponseWriter, r *http.Request) {
 	}
 
 	httputil.JSON(w, http.StatusOK, map[string]string{"role": req.Role})
-}
-
-func simpleHash(s string) string {
-	h := 0
-	for _, c := range s {
-		h = h*31 + int(c)
-	}
-	return ""
 }

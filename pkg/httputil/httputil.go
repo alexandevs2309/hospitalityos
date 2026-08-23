@@ -2,6 +2,8 @@ package httputil
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"net/http"
 	"time"
@@ -37,4 +39,12 @@ func GetTenantID(ctx context.Context) string {
 
 func ParseDate(s string) (time.Time, error) {
 	return time.Parse("2006-01-02", s)
+}
+
+func GenerateID() string {
+	b := make([]byte, 16)
+	_, _ = rand.Read(b)
+	b[6] = (b[6] & 0x0f) | 0x40
+	b[8] = (b[8] & 0x3f) | 0x80
+	return hex.EncodeToString(b)
 }

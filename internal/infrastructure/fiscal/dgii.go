@@ -23,7 +23,7 @@ func NewDGIClient(apiKey string) *DGIClient {
 	}
 }
 
-type eCFRequest struct {
+type ECFRequest struct {
 	RNC             string `json:"rnc"`
 	NCF             string `json:"ncf"`
 	NCFType         string `json:"ncf_type"`
@@ -54,7 +54,7 @@ type ValidationResponse struct {
 	Mensaje string `json:"mensaje"`
 }
 
-func (c *DGIClient) SubmitECF(req eCFRequest) (*eCFResponse, error) {
+func (c *DGIClient) SubmitECF(req ECFRequest) (*eCFResponse, error) {
 	body, err := json.Marshal(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal request: %w", err)
