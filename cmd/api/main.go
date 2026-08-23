@@ -75,6 +75,7 @@ func main() {
 	i18nHandler := handlers.NewI18nHandler()
 	paymentGatewayHandler := handlers.NewPaymentGatewayHandler(pool, nil)
 	channelManagerHandler := handlers.NewChannelManagerHandler(pool)
+	fiscalHandler := handlers.NewFiscalHandler(pool, "")
 
 	router := httplib.NewRouter(
 		reservationHandler,
@@ -99,6 +100,7 @@ func main() {
 		i18nHandler,
 		paymentGatewayHandler,
 		channelManagerHandler,
+		fiscalHandler,
 		pool,
 	)
 
