@@ -126,12 +126,12 @@ func validateRNCJuridico(rnc string) bool {
 
 	weights := []int{7, 9, 8, 6, 5, 4, 3, 2}
 	sum := 0
-	for i, w := range weights {
+	for i := 0; i < 8; i++ {
 		digit := int(rnc[i] - '0')
 		if digit < 0 || digit > 9 {
 			return false
 		}
-		sum += digit * w
+		sum += digit * weights[i]
 	}
 
 	remainder := sum % 11
@@ -173,10 +173,10 @@ func FormatRNC(rnc string) string {
 	rnc = strings.ReplaceAll(rnc, "-", "")
 	rnc = strings.TrimSpace(rnc)
 	if len(rnc) == 9 {
-		return fmt.Sprintf("%s-%s-%s", rnc[:3], rnc[3:5], rnc[5:])
+		return fmt.Sprintf("%s-%s-%s", rnc[:3], rnc[3:8], rnc[8:])
 	}
 	if len(rnc) == 11 {
-		return fmt.Sprintf("%s-%s-%s", rnc[:3], rnc[3:7], rnc[7:])
+		return fmt.Sprintf("%s-%s-%s", rnc[:3], rnc[3:8], rnc[8:])
 	}
 	return rnc
 }

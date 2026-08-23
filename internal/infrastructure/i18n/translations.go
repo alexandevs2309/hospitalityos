@@ -2,6 +2,7 @@ package i18n
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"sync"
@@ -122,10 +123,15 @@ func interfaceToString(v interface{}) string {
 	case string:
 		return val
 	case int:
-		return string(rune(val))
+		return fmt.Sprintf("%d", val)
 	case float64:
-		return "0"
+		return fmt.Sprintf("%g", val)
+	case bool:
+		if val {
+			return "true"
+		}
+		return "false"
 	default:
-		return ""
+		return fmt.Sprintf("%v", val)
 	}
 }
