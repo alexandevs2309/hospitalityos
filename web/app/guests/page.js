@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { listGuests, createGuest } from "@/lib/api";
+import Link from "next/link";
 
 export default function GuestsPage() {
   const [guests, setGuests] = useState([]);
@@ -82,7 +83,7 @@ export default function GuestsPage() {
                     <div className="w-8 h-8 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center text-xs font-bold">
                       {g.first_name?.[0]}{g.last_name?.[0]}
                     </div>
-                    <span className="text-sm font-medium text-slate-900">{g.first_name} {g.last_name}</span>
+                    <Link href={`/guests/${g.id}`} className="text-sm font-medium text-brand-700 hover:text-brand-800 hover:underline">{g.first_name} {g.last_name}</Link>
                   </div>
                 </td>
                 <td className="px-5 py-4 text-sm text-slate-600">{g.email}</td>

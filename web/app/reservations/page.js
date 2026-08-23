@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { listReservations, createReservation, cancelReservation, checkInReservation, checkOutReservation } from "@/lib/api";
+import Link from "next/link";
 
 const statusConfig = {
   confirmed: { label: "Confirmada", color: "text-brand-700 bg-brand-50" },
@@ -119,6 +120,7 @@ export default function ReservationsPage() {
                   </td>
                   <td className="px-5 py-4">
                     <div className="flex gap-1.5">
+                      <Link href={`/reservations/${r.id}/folio`} className="px-3 py-1.5 bg-violet-50 text-violet-700 border border-violet-200 rounded-md text-xs font-medium hover:bg-violet-100">Folio</Link>
                       {r.status === "confirmed" && (
                         <>
                           <button onClick={() => handleAction("checkin", r.id)} className="px-3 py-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-md text-xs font-medium hover:bg-emerald-100">Check-in</button>

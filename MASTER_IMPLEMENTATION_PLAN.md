@@ -807,18 +807,24 @@ Auron Hospitality no es un PMS — es una **plataforma de gestión hotelera** qu
 
 | ID | Page | Status | Actions |
 |----|------|--------|---------|
-| FE-001 | Dashboard | BROKEN | Replace Math.random with real API (PMS-010) |
-| FE-002 | Rooms | PARTIAL | Fix API base URL, tenant mismatch |
-| FE-003 | Reservations | PARTIAL | Fix crypto.randomUUID on HTTP, add tenant |
-| FE-004 | Availability | WORKING | Minor fixes only |
-| FE-005 | Guests | PARTIAL | Fix tenant header removal (SEC-002) |
-| FE-006 | Settings | WORKING | Minor fixes only |
-| FE-007 | Login | NOT IMPLEMENTED | Build login page (SEC-001) |
-| FE-008 | Front Desk | NOT IMPLEMENTED | Build visual board (PMS-001) |
-| FE-009 | Housekeeping | NOT IMPLEMENTED | Build task board (PMS-006) |
-| FE-010 | Guest Profile | NOT IMPLEMENTED | Build profile page (PMS-005) |
-| FE-011 | Folio | NOT IMPLEMENTED | Build folio view (PMS-002) |
-| FE-012 | Reports | NOT IMPLEMENTED | Build analytics (PMS-010) |
+| FE-001 | Dashboard | DONE | Stats reales del API |
+| FE-002 | Rooms | DONE | CRUD completo con filtros |
+| FE-003 | Reservations | DONE | CRUD + check-in/out + link a folio |
+| FE-004 | Availability | DONE | Búsqueda por fechas |
+| FE-005 | Guests | DONE | CRUD + búsqueda + link a perfil 360 |
+| FE-006 | Settings | DONE | Tipos de habitación + tarifas |
+| FE-007 | Login | DONE | JWT auth + redirect a dashboard |
+| FE-008 | Front Desk | DONE | Board diario + llegadas/salidas |
+| FE-009 | Housekeeping | DONE | Task board con status flow |
+| FE-010 | Guest Profile | DONE | Perfil 360: historial, preferencias, tags |
+| FE-011 | Folio | DONE | Cargos/pagos/balance + cerrar folio |
+| FE-012 | Reports | DONE | Dashboard + ocupación + revenue + guests |
+| FE-013 | Staff | DONE | CRUD + cambio de roles |
+| FE-014 | Maintenance | DONE | Requests CRUD + prioridades |
+| FE-015 | Night Audit | DONE | Ejecutar + historial |
+| FE-016 | Fiscal (e-CF) | DONE | Receipts DGII + RNC + ITBIS |
+| FE-017 | Auth client | DONE | JWT storage + auto-attach Bearer |
+| FE-018 | Navigation | DONE | 12 items sidebar |
 
 ---
 
