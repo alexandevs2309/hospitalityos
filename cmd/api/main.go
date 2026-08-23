@@ -71,6 +71,7 @@ func main() {
 	maintenanceHandler := handlers.NewMaintenanceHandler(pool)
 	reportHandler := handlers.NewReportHandler(pool)
 	whatsappHandler := handlers.NewWhatsAppHandler(pool, nil)
+	offlineHandler := handlers.NewOfflineHandler(pool)
 
 	router := httplib.NewRouter(
 		reservationHandler,
@@ -91,6 +92,7 @@ func main() {
 		maintenanceHandler,
 		reportHandler,
 		whatsappHandler,
+		offlineHandler,
 		pool,
 	)
 

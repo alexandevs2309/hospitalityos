@@ -28,6 +28,7 @@ func NewRouter(
 	maintenanceHandler *handlers.MaintenanceHandler,
 	reportHandler *handlers.ReportHandler,
 	whatsappHandler *handlers.WhatsAppHandler,
+	offlineHandler *handlers.OfflineHandler,
 	pool *pgxpool.Pool,
 ) *chi.Mux {
 	r := chi.NewRouter()
@@ -122,6 +123,11 @@ func NewRouter(
 
 			r.Post("/whatsapp/send", whatsappHandler.SendMessage)
 			r.Get("/whatsapp/messages", whatsappHandler.ListMessages)
+
+			r.Post("/offline/sync/push", offlineHandler.Push)
+			r.Get("/offline/sync/pull", offlineHandler.Pull)
+			r.Post("/offline/sync/ack", offlineHandler.Ack)
+			r.Get("/offline/bootstrap", offlineHandler.Bootstrap)
 		})
 
 		r.Group(func(r chi.Router) {
