@@ -74,6 +74,7 @@ func main() {
 	offlineHandler := handlers.NewOfflineHandler(pool)
 	i18nHandler := handlers.NewI18nHandler()
 	paymentGatewayHandler := handlers.NewPaymentGatewayHandler(pool, nil)
+	channelManagerHandler := handlers.NewChannelManagerHandler(pool)
 
 	router := httplib.NewRouter(
 		reservationHandler,
@@ -97,6 +98,7 @@ func main() {
 		offlineHandler,
 		i18nHandler,
 		paymentGatewayHandler,
+		channelManagerHandler,
 		pool,
 	)
 

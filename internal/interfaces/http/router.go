@@ -31,6 +31,7 @@ func NewRouter(
 	offlineHandler *handlers.OfflineHandler,
 	i18nHandler *handlers.I18nHandler,
 	paymentGatewayHandler *handlers.PaymentGatewayHandler,
+	channelManagerHandler *handlers.ChannelManagerHandler,
 	pool *pgxpool.Pool,
 ) *chi.Mux {
 	r := chi.NewRouter()
@@ -133,6 +134,13 @@ func NewRouter(
 			r.Get("/offline/sync/pull", offlineHandler.Pull)
 			r.Post("/offline/sync/ack", offlineHandler.Ack)
 			r.Get("/offline/bootstrap", offlineHandler.Bootstrap)
+
+			r.Get("/channels", channelManagerHandler.ListChannels)
+			r.Post("/channels", channelManagerHandler.ConfigureChannel)
+			r.Post("/channels/sync/rates", channelManagerHandler.SyncRates)
+			r.Post("/channels/sync/availability", channelManagerHandler.SyncAvailability)
+			r.Get("/channels/pull/reservations", channelManagerHandler.PullReservations)
+			r.Get("/channels/sync/log", channelManagerHandler.SyncLog)
 
 			r.Get("/i18n/translations", i18nHandler.GetTranslations)
 			r.Get("/i18n/languages", i18nHandler.GetLanguages)
