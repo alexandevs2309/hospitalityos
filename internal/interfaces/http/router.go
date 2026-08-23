@@ -17,6 +17,7 @@ func NewRouter(
 	rateHandler *handlers.RateHandler,
 	availabilityHandler *handlers.AvailabilityHandler,
 	authHandler *handlers.AuthHandler,
+	frontDeskHandler *handlers.FrontDeskHandler,
 	pool *pgxpool.Pool,
 ) *chi.Mux {
 	r := chi.NewRouter()
@@ -64,6 +65,8 @@ func NewRouter(
 			r.Get("/rates", rateHandler.List)
 
 			r.Get("/availability", availabilityHandler.CheckAvailability)
+
+			r.Get("/frontdesk/today", frontDeskHandler.Today)
 		})
 
 		r.Group(func(r chi.Router) {
