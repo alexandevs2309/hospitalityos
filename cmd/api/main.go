@@ -64,6 +64,7 @@ func main() {
 	folioHandler := handlers.NewFolioHandler(pool)
 	nightAuditHandler := handlers.NewNightAuditHandler(pool)
 	rateSeasonHandler := handlers.NewRateSeasonHandler(pool)
+	guestProfileHandler := handlers.NewGuestProfileHandler(pool)
 
 	router := httplib.NewRouter(
 		reservationHandler,
@@ -77,6 +78,7 @@ func main() {
 		folioHandler,
 		nightAuditHandler,
 		rateSeasonHandler,
+		guestProfileHandler,
 		pool,
 	)
 
