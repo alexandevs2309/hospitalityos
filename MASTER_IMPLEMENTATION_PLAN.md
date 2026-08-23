@@ -14,9 +14,123 @@ Este documento es la fuente operativa para desarrollar Auron Hospitality. Cruza 
 
 ---
 
-# 2. CURRENT STATE
+# 2. COMPETITIVE LANDSCAPE
 
-## 2.1 Code Inventory
+## 2.1 Vision
+
+Auron Hospitality no es un PMS — es una **plataforma de gestión hotelera** que combina lo mejor de Amenitiz, Mews, Cloudbeds y OPERA con diseño premium, fiscal RD nativo, WhatsApp como canal operativo, y offline-first.
+
+**Competitors:** Amenitiz (insipido en diseño), Mews (caro), Cloudbeds (genérico), RoomRaccoon (básico).
+
+**Auron differentiator:** Diseño premium + Fiscal RD + WhatsApp-native + Offline + Precio $0-300/mo.
+
+## 2.2 Gap Analysis vs Competitors
+
+### PMS Core (Commodity — todo hotel necesita)
+
+| Feature | Amenitiz | Mews | Cloudbeds | Auron Actual | Gap |
+|---------|----------|------|-----------|-------------|-----|
+| Reservation CRUD | ✅ | ✅ | ✅ | ⚠️ Basic | CRÍTICO |
+| Room management | ✅ | ✅ | ✅ | ⚠️ Sin IDOR fix | CRÍTICO |
+| Guest profiles | ✅ | ✅ | ✅ | ⚠️ Basic | ALTO |
+| Rate management | ✅ | ✅ | ✅ | ⚠️ Sin seasons | MEDIO |
+| Availability engine | ✅ | ✅ | ✅ | ✅ Works standalone | BAJO |
+| Multi-tenant | ✅ | ✅ | ✅ | ❌ Sin aislamiento | CRÍTICO |
+| Auth / RBAC | ✅ | ✅ | ✅ | ❌ No-op | CRÍTICO |
+
+### Front Desk (Operación diaria)
+
+| Feature | Amenitiz | Mews | Cloudbeds | Auron Actual | Gap |
+|---------|----------|------|-----------|-------------|-----|
+| Room grid visual (timeline) | ✅ | ✅ | ✅ | ❌ | CRÍTICO |
+| Arrivals / departures today | ✅ | ✅ | ✅ | ❌ | CRÍTICO |
+| Quick check-in/out | ✅ | ✅ | ✅ | ⚠️ SQL directo | ALTO |
+| Walk-in booking | ✅ | ✅ | ✅ | ❌ | ALTO |
+| Room assignment drag-drop | ✅ | ✅ | ⚠️ | ❌ | MEDIO |
+| Color-coded status | ✅ | ✅ | ✅ | ⚠️ Solo badges | BAJO |
+
+### Folio / Billing
+
+| Feature | Amenitiz | Mews | Cloudbeds | Auron Actual | Gap |
+|---------|----------|------|-----------|-------------|-----|
+| Charge ledger | ✅ | ✅ | ✅ | ❌ | CRÍTICO |
+| Payment recording | ✅ | ✅ | ✅ | ❌ | CRÍTICO |
+| Tax calculation (ITBIS) | ✅ | ✅ | ✅ | ❌ | CRÍTICO |
+| Deposits | ✅ | ✅ | ✅ | ❌ | ALTO |
+| Refunds / credits | ✅ | ✅ | ✅ | ❌ | ALTO |
+| Close folio | ✅ | ✅ | ✅ | ❌ | CRÍTICO |
+| Split payment | ✅ | ✅ | ✅ | ❌ | MEDIO |
+| Multi-currency | ⚠️ | ✅ | ✅ | ❌ DOP only | MEDIO |
+
+### Night Audit
+
+| Feature | Amenitiz | Mews | Cloudbeds | Auron Actual | Gap |
+|---------|----------|------|-----------|-------------|-----|
+| Auto night audit | ✅ | ✅ | ✅ | ❌ | CRÍTICO |
+| Nightly posting | ✅ | ✅ | ✅ | ❌ | CRÍTICO |
+| Daily report | ✅ | ✅ | ✅ | ❌ | ALTO |
+| Payment reconciliation | ✅ | ✅ | ✅ | ❌ | ALTO |
+
+### Housekeeping
+
+| Feature | Amenitiz | Mews | Cloudbeds | Auron Actual | Gap |
+|---------|----------|------|-----------|-------------|-----|
+| Task board by floor | ✅ | ✅ | ✅ | ❌ | ALTO |
+| Staff assignment | ✅ | ✅ | ✅ | ❌ | ALTO |
+| Dirty→Clean→Inspected | ✅ | ✅ | ✅ | ⚠️ State machine sin UI | MEDIO |
+| Mobile notifications | ✅ | ✅ | ✅ | ❌ | MEDIO |
+
+### Revenue Management
+
+| Feature | Amenitiz | Mews | Cloudbeds | Auron Actual | Gap |
+|---------|----------|------|-----------|-------------|-----|
+| Seasonal pricing | ✅ | ✅ | ✅ | ❌ | ALTO |
+| Dynamic pricing | ⚠️ | ✅ Atomize | ✅ Signals | ❌ | MEDIO |
+| Occupancy-based pricing | ✅ | ✅ | ✅ | ❌ | MEDIO |
+
+### Distribution
+
+| Feature | Amenitiz | Mews | Cloudbeds | Auron Actual | Gap |
+|---------|----------|------|-----------|-------------|-----|
+| Channel manager | ✅ 30+ | ✅ SiteMinder | ✅ 300+ | ❌ | ALTO |
+| Booking engine | ✅ | ✅ | ✅ | ❌ | ALTO |
+| iCal export | ✅ | ✅ | ✅ | ❌ | MEDIO |
+
+### Guest Experience
+
+| Feature | Amenitiz | Mews | Cloudbeds | Auron Actual | Gap |
+|---------|----------|------|-----------|-------------|-----|
+| Guest portal | ✅ | ✅ | ✅ | ❌ | ALTO |
+| Pre-arrival email | ✅ | ✅ | ✅ | ❌ | MEDIO |
+| WhatsApp messaging | ⚠️ Basic | ✅ Native | ⚠️ Partner | ❌ | ALTO |
+| Online check-in | ✅ | ✅ | ✅ | ❌ | MEDIO |
+
+## 2.3 What AURON has that NO competitor has
+
+| Feature | Auron | Amenitiz | Mews | Cloudbeds |
+|---------|-------|----------|------|-----------|
+| **Fiscal RD (DGII/NCF/ITBIS)** | 🎯 TARGET | ❌ | ❌ | ❌ |
+| **WhatsApp-native operations** | 🎯 TARGET | ⚠️ | ✅ messaging | ⚠️ |
+| **Offline-first** | 🎯 TARGET | ❌ | ❌ | ❌ |
+| **Open source** | 🎯 TARGET | ❌ | ❌ | ❌ |
+| **LATAM pricing ($0-300/mo)** | 🎯 TARGET | $15/room | €199+ | $15/room |
+| **Event Sourcing architecture** | ✅ | ❌ | ❌ | ❌ |
+| **DDD clean architecture** | ✅ | ❌ | ⚠️ | ❌ |
+| **Caribbean intelligence** | 🎯 TARGET | ❌ | ❌ | ❌ |
+
+## 2.4 Gap Summary by Level
+
+| Nivel | Features | Prioridad | Phases |
+|-------|----------|-----------|--------|
+| **Nivel 1: Sin esto no es PMS** | Auth, Tenant, Folio, Front Desk, Night Audit, Housekeeping | P0-P1 | 0-2 |
+| **Nivel 2: Sin esto no compite** | Revenue, Booking Engine, Channel Manager, Guest Portal, Payments | P1-P2 | 3-5 |
+| **Nivel 3: Lo que lo hace ÚNICO** | Fiscal RD, WhatsApp-native, Offline, AI, LATAM intelligence | P2-P3 | 6-7 |
+
+---
+
+# 3. CURRENT STATE
+
+## 3.1 Code Inventory
 
 | Category | Count | Files |
 |----------|-------|-------|
@@ -32,7 +146,7 @@ Este documento es la fuente operativa para desarrollar Auron Hospitality. Cruza 
 | Pkg | 3 | es/aggregate, httputil, types/money |
 | Empty dirs | 7 | projector, docker, auth, observability, tenant, room app, components |
 
-## 2.2 Bugs and Gaps (from audit)
+## 3.2 Bugs and Gaps (from audit)
 
 | # | Issue | Severity | Location |
 |---|-------|----------|----------|
@@ -54,7 +168,7 @@ Este documento es la fuente operativa para desarrollar Auron Hospitality. Cruza 
 | 16 | Tenant mismatch (eden-hotel vs eden-samana) | LOW | api.js:7 vs seed.go:25 |
 | 17 | crypto.randomUUID() fails on HTTP plain | LOW | reservations/page.js:33 |
 
-## 2.3 What Works (verified)
+## 3.3 What Works (verified)
 
 | Capability | Evidence | Limitation |
 |------------|----------|------------|
@@ -73,7 +187,7 @@ Este documento es la fuente operativa para desarrollar Auron Hospitality. Cruza 
 
 ---
 
-# 3. IMPLEMENTATION PRINCIPLES
+# 4. IMPLEMENTATION PRINCIPLES
 
 1. **Security before features.** No new feature without auth, tenant isolation, and RBAC.
 2. **Fix before build.** Existing bugs resolved before adding capabilities.
@@ -88,7 +202,7 @@ Este documento es la fuente operativa para desarrollar Auron Hospitality. Cruza 
 
 ---
 
-# 4. CAPABILITY COVERAGE
+# 5. CAPABILITY COVERAGE
 
 | Capability | Current | Target | Gap | Priority |
 |------------|---------|--------|-----|----------|
@@ -125,7 +239,7 @@ Este documento es la fuente operativa para desarrollar Auron Hospitality. Cruza 
 
 ---
 
-# 5. P0 FOUNDATION BACKLOG
+# 6. P0 FOUNDATION BACKLOG
 
 ## SEC-001 — JWT Authentication System
 
@@ -251,7 +365,7 @@ Este documento es la fuente operativa para desarrollar Auron Hospitality. Cruza 
 
 ---
 
-# 6. P1 PMS FOUNDATION BACKLOG
+# 7. P1 PMS FOUNDATION BACKLOG
 
 ## PMS-001 — Front Desk Board
 
@@ -371,7 +485,7 @@ Este documento es la fuente operativa para desarrollar Auron Hospitality. Cruza 
 
 ---
 
-# 7. P2 COMPETITIVE BACKLOG
+# 8. P2 COMPETITIVE BACKLOG
 
 ## CH-001 — Booking Engine (Widget)
 
@@ -480,7 +594,7 @@ Este documento es la fuente operativa para desarrollar Auron Hospitality. Cruza 
 
 ---
 
-# 8. P3 DIFFERENTIATION BACKLOG
+# 9. P3 DIFFERENTIATION BACKLOG
 
 ## EDGE-001 — Offline/Edge Architecture
 
@@ -531,7 +645,7 @@ Este documento es la fuente operativa para desarrollar Auron Hospitality. Cruza 
 
 ---
 
-# 9. TECHNICAL FOUNDATION BACKLOG
+# 10. TECHNICAL FOUNDATION BACKLOG
 
 ## TF-001 — Event Store Reliability
 
@@ -605,7 +719,7 @@ Este documento es la fuente operativa para desarrollar Auron Hospitality. Cruza 
 
 ---
 
-# 10. DOMAIN BACKLOG
+# 11. DOMAIN BACKLOG
 
 | ID | Domain | Current | Actions Needed |
 |----|--------|---------|----------------|
@@ -627,7 +741,7 @@ Este documento es la fuente operativa para desarrollar Auron Hospitality. Cruza 
 
 ---
 
-# 11. API BACKLOG
+# 12. API BACKLOG
 
 | ID | Endpoint | Current | Fix/Build |
 |----|----------|---------|-----------|
@@ -663,7 +777,7 @@ Este documento es la fuente operativa para desarrollar Auron Hospitality. Cruza 
 
 ---
 
-# 12. DATABASE BACKLOG
+# 13. DATABASE BACKLOG
 
 | ID | Migration | Status | Description |
 |----|-----------|--------|-------------|
@@ -689,7 +803,7 @@ Este documento es la fuente operativa para desarrollar Auron Hospitality. Cruza 
 
 ---
 
-# 13. FRONTEND BACKLOG
+# 14. FRONTEND BACKLOG
 
 | ID | Page | Status | Actions |
 |----|------|--------|---------|
@@ -708,7 +822,7 @@ Este documento es la fuente operativa para desarrollar Auron Hospitality. Cruza 
 
 ---
 
-# 14. EVENT BACKLOG
+# 15. EVENT BACKLOG
 
 | ID | Event | Status | Target |
 |----|-------|--------|--------|
@@ -729,7 +843,7 @@ Este documento es la fuente operativa para desarrollar Auron Hospitality. Cruza 
 
 ---
 
-# 15. INTEGRATION BACKLOG
+# 16. INTEGRATION BACKLOG
 
 | ID | Integration | Status | Dependencies |
 |----|------------|--------|-------------|
@@ -746,7 +860,7 @@ Este documento es la fuente operativa para desarrollar Auron Hospitality. Cruza 
 
 ---
 
-# 16. SECURITY BACKLOG
+# 17. SECURITY BACKLOG
 
 | ID | Control | Status | Severity | Target |
 |----|---------|--------|----------|--------|
@@ -765,7 +879,7 @@ Este documento es la fuente operativa para desarrollar Auron Hospitality. Cruza 
 
 ---
 
-# 17. TESTING BACKLOG
+# 18. TESTING BACKLOG
 
 | ID | Test Type | Current | Target |
 |----|-----------|---------|--------|
@@ -783,7 +897,7 @@ Este documento es la fuente operativa para desarrollar Auron Hospitality. Cruza 
 
 ---
 
-# 18. OBSERVABILITY BACKLOG
+# 19. OBSERVABILITY BACKLOG
 
 | ID | Component | Status | Priority |
 |----|-----------|--------|----------|
@@ -797,7 +911,7 @@ Este documento es la fuente operativa para desarrollar Auron Hospitality. Cruza 
 
 ---
 
-# 19. DEPENDENCY GRAPH
+# 20. DEPENDENCY GRAPH
 
 ```
 SEC-005 (Secrets)
@@ -852,7 +966,7 @@ TF-003 (Observability) --- independent, do anytime
 
 ---
 
-# 20. PHASE 0 — SECURITY + CORE INTEGRITY
+# 21. PHASE 0 — SECURITY + CORE INTEGRITY
 
 **Duration:** Weeks 1-4
 **Goal:** System is secure and data is trustworthy.
@@ -904,7 +1018,7 @@ TF-003 (Observability) --- independent, do anytime
 
 ---
 
-# 21. PHASE 1 — PMS FOUNDATION
+# 22. PHASE 1 — PMS FOUNDATION
 
 **Duration:** Weeks 5-10
 **Goal:** Hotel can operate day-to-day with front desk, folio, and basic operations.
@@ -950,7 +1064,7 @@ TF-003 (Observability) --- independent, do anytime
 
 ---
 
-# 22. PHASE 2 — HOTEL OPERATIONS
+# 23. PHASE 2 — HOTEL OPERATIONS
 
 **Duration:** Weeks 11-16
 **Goal:** Full operational workflow for daily hotel management.
@@ -987,7 +1101,7 @@ TF-003 (Observability) --- independent, do anytime
 
 ---
 
-# 23. PHASE 3 — REVENUE + FISCAL
+# 24. PHASE 3 — REVENUE + FISCAL
 
 **Duration:** Weeks 17-22
 **Goal:** Revenue management and Dominican fiscal compliance.
@@ -1022,7 +1136,7 @@ TF-003 (Observability) --- independent, do anytime
 
 ---
 
-# 24. PHASE 4 — DISTRIBUTION + BOOKING
+# 25. PHASE 4 — DISTRIBUTION + BOOKING
 
 **Duration:** Weeks 23-28
 **Goal:** Hotels can receive direct bookings and connect to OTAs.
@@ -1056,7 +1170,7 @@ TF-003 (Observability) --- independent, do anytime
 
 ---
 
-# 25. PHASE 5 — GUEST EXPERIENCE
+# 26. PHASE 5 — GUEST EXPERIENCE
 
 **Duration:** Weeks 29-34
 **Goal:** Guest engagement through WhatsApp and self-service.
@@ -1090,7 +1204,7 @@ TF-003 (Observability) --- independent, do anytime
 
 ---
 
-# 26. PHASE 6 — INTELLIGENCE
+# 27. PHASE 6 — INTELLIGENCE
 
 **Duration:** Weeks 35-42
 **Goal:** Data-driven insights and advanced features.
@@ -1126,7 +1240,7 @@ TF-003 (Observability) --- independent, do anytime
 
 ---
 
-# 27. PHASE 7 — DIFFERENTIATION
+# 28. PHASE 7 — DIFFERENTIATION
 
 **Duration:** Weeks 43-52
 **Goal:** AI features, offline capability, multi-property.
@@ -1163,7 +1277,7 @@ TF-003 (Observability) --- independent, do anytime
 
 ---
 
-# 28. CAPABILITY DEFINITION OF DONE
+# 29. CAPABILITY DEFINITION OF DONE
 
 A capability is **COMPLETE** only when ALL of the following are true:
 
@@ -1184,7 +1298,7 @@ A capability is **NOT COMPLETE** if any dimension is missing.
 
 ---
 
-# 29. SECURITY GATES
+# 30. SECURITY GATES
 
 No feature can pass to COMPLETE if ANY of these are true:
 
@@ -1203,7 +1317,7 @@ No feature can pass to COMPLETE if ANY of these are true:
 
 ---
 
-# 30. DO NOT BUILD YET
+# 31. DO NOT BUILD YET
 
 | Feature | Motivation | Missing Dependency | Risk | Reconsider When |
 |---------|-----------|-------------------|------|-----------------|
@@ -1220,7 +1334,7 @@ No feature can pass to COMPLETE if ANY of these are true:
 
 ---
 
-# 31. ARCHITECTURAL MIGRATION PLAN
+# 32. ARCHITECTURAL MIGRATION PLAN
 
 ## Current State -> Target State
 
@@ -1261,7 +1375,7 @@ No feature can pass to COMPLETE if ANY of these are true:
 
 ---
 
-# 32. RECOMMENDED EXECUTION ORDER
+# 33. RECOMMENDED EXECUTION ORDER
 
 1. **SEC-005** — Secret Management (XS, unblocks everything safely)
 2. **FIX-004** — Docker Security (XS, quick win)
@@ -1286,7 +1400,7 @@ No feature can pass to COMPLETE if ANY of these are true:
 
 ---
 
-# 33. FIRST 20 TASKS
+# 34. FIRST 20 TASKS
 
 These are the 20 tasks to execute in order. They build a secure, functional foundation.
 
@@ -1315,7 +1429,7 @@ These are the 20 tasks to execute in order. They build a secure, functional foun
 
 ---
 
-# 34. RISKS
+# 35. RISKS
 
 | Risk | Likelihood | Impact | Mitigation |
 |------|-----------|--------|------------|
@@ -1332,7 +1446,7 @@ These are the 20 tasks to execute in order. They build a secure, functional foun
 
 ---
 
-# 35. CTO RECOMMENDATION
+# 36. CTO RECOMMENDATION
 
 ## Immediate Priority (Now)
 
