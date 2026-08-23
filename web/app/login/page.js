@@ -6,7 +6,7 @@ import { loginUser, storeAuth } from "@/lib/auth";
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [tenantId, setTenantId] = useState("eden-salena");
+  const [tenantId, setTenantId] = useState("eden-hotel");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
 
