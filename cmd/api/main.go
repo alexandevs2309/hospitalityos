@@ -66,6 +66,7 @@ func main() {
 	rateSeasonHandler := handlers.NewRateSeasonHandler(pool)
 	guestProfileHandler := handlers.NewGuestProfileHandler(pool)
 	housekeepingHandler := handlers.NewHousekeepingHandler(pool)
+	paymentHandler := handlers.NewPaymentHandler(pool)
 
 	router := httplib.NewRouter(
 		reservationHandler,
@@ -81,6 +82,7 @@ func main() {
 		rateSeasonHandler,
 		guestProfileHandler,
 		housekeepingHandler,
+		paymentHandler,
 		pool,
 	)
 

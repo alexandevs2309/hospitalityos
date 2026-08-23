@@ -23,6 +23,7 @@ func NewRouter(
 	rateSeasonHandler *handlers.RateSeasonHandler,
 	guestProfileHandler *handlers.GuestProfileHandler,
 	housekeepingHandler *handlers.HousekeepingHandler,
+	paymentHandler *handlers.PaymentHandler,
 	pool *pgxpool.Pool,
 ) *chi.Mux {
 	r := chi.NewRouter()
@@ -92,6 +93,10 @@ func NewRouter(
 			r.Get("/housekeeping/tasks", housekeepingHandler.ListTasks)
 			r.Post("/housekeeping/tasks", housekeepingHandler.CreateTask)
 			r.Patch("/housekeeping/tasks/{id}/status", housekeepingHandler.UpdateStatus)
+
+			r.Post("/payments", paymentHandler.Create)
+			r.Get("/payments", paymentHandler.List)
+			r.Get("/payments/{id}/receipt", paymentHandler.GetReceipt)
 		})
 
 		r.Group(func(r chi.Router) {
