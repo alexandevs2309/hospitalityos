@@ -33,6 +33,7 @@ func NewRouter(
 	paymentGatewayHandler *handlers.PaymentGatewayHandler,
 	channelManagerHandler *handlers.ChannelManagerHandler,
 	fiscalHandler *handlers.FiscalHandler,
+	analyticsHandler *handlers.AnalyticsHandler,
 	pool *pgxpool.Pool,
 ) *chi.Mux {
 	r := chi.NewRouter()
@@ -147,6 +148,10 @@ func NewRouter(
 			r.Get("/fiscal/receipts", fiscalHandler.GetReceipts)
 			r.Get("/fiscal/summary", fiscalHandler.FiscalSummary)
 			r.Get("/fiscal/validate-rnc", fiscalHandler.ValidateRNC)
+
+			r.Get("/analytics/predict/occupancy", analyticsHandler.PredictOccupancy)
+			r.Get("/analytics/forecast/revenue", analyticsHandler.ForecastRevenue)
+			r.Get("/analytics/insights", analyticsHandler.GetInsights)
 
 			r.Get("/i18n/translations", i18nHandler.GetTranslations)
 			r.Get("/i18n/languages", i18nHandler.GetLanguages)
