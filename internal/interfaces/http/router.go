@@ -29,6 +29,7 @@ func NewRouter(
 	reportHandler *handlers.ReportHandler,
 	whatsappHandler *handlers.WhatsAppHandler,
 	offlineHandler *handlers.OfflineHandler,
+	i18nHandler *handlers.I18nHandler,
 	pool *pgxpool.Pool,
 ) *chi.Mux {
 	r := chi.NewRouter()
@@ -39,6 +40,8 @@ func NewRouter(
 	r.Use(chimw.RequestID)
 	r.Use(chimw.SetHeader("Content-Type", "application/json"))
 	r.Use(chimw.Throttle(100))
+
+	r.Use(middleware.I18n)
 
 	r.Get("/health", observability.HealthHandler(pool))
 	r.Get("/metrics", observability.MetricsHandler())
@@ -128,6 +131,9 @@ func NewRouter(
 			r.Get("/offline/sync/pull", offlineHandler.Pull)
 			r.Post("/offline/sync/ack", offlineHandler.Ack)
 			r.Get("/offline/bootstrap", offlineHandler.Bootstrap)
+
+			r.Get("/i18n/translations", i18nHandler.GetTranslations)
+			r.Get("/i18n/languages", i18nHandler.GetLanguages)
 		})
 
 		r.Group(func(r chi.Router) {
