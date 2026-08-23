@@ -25,6 +25,7 @@ func NewRouter(
 	housekeepingHandler *handlers.HousekeepingHandler,
 	paymentHandler *handlers.PaymentHandler,
 	staffHandler *handlers.StaffHandler,
+	maintenanceHandler *handlers.MaintenanceHandler,
 	pool *pgxpool.Pool,
 ) *chi.Mux {
 	r := chi.NewRouter()
@@ -102,6 +103,10 @@ func NewRouter(
 			r.Get("/staff", staffHandler.List)
 			r.Post("/staff", staffHandler.Create)
 			r.Patch("/staff/{id}/role", staffHandler.UpdateRole)
+
+			r.Get("/maintenance", maintenanceHandler.List)
+			r.Post("/maintenance", maintenanceHandler.Create)
+			r.Patch("/maintenance/{id}/status", maintenanceHandler.UpdateStatus)
 		})
 
 		r.Group(func(r chi.Router) {

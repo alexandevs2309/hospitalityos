@@ -68,6 +68,7 @@ func main() {
 	housekeepingHandler := handlers.NewHousekeepingHandler(pool)
 	paymentHandler := handlers.NewPaymentHandler(pool)
 	staffHandler := handlers.NewStaffHandler(pool)
+	maintenanceHandler := handlers.NewMaintenanceHandler(pool)
 
 	router := httplib.NewRouter(
 		reservationHandler,
@@ -85,6 +86,7 @@ func main() {
 		housekeepingHandler,
 		paymentHandler,
 		staffHandler,
+		maintenanceHandler,
 		pool,
 	)
 
