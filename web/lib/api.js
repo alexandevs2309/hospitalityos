@@ -4,14 +4,16 @@ const API_BASE = "/api";
 
 async function request(path, options = {}) {
   const token = getStoredToken();
+  const { tenantId, token: explicitToken, headers: extraHeaders, ...fetchOpts } = options;
   const res = await fetch(`${API_BASE}${path}`, {
+    ...fetchOpts,
     headers: {
       "Content-Type": "application/json",
-      "X-Tenant-ID": options.tenantId || "eden-hotel",
+      "X-Tenant-ID": tenantId || "eden-hotel",
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...(options.token ? { Authorization: `Bearer ${options.token}` } : {}),
+      ...(explicitToken ? { Authorization: `Bearer ${explicitToken}` } : {}),
+      ...(extraHeaders || {}),
     },
-    ...options,
   });
   if (!res.ok) {
     const error = await res.text();
