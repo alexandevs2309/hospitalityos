@@ -20,6 +20,7 @@ func NewRouter(
 	frontDeskHandler *handlers.FrontDeskHandler,
 	folioHandler *handlers.FolioHandler,
 	nightAuditHandler *handlers.NightAuditHandler,
+	rateSeasonHandler *handlers.RateSeasonHandler,
 	pool *pgxpool.Pool,
 ) *chi.Mux {
 	r := chi.NewRouter()
@@ -76,6 +77,10 @@ func NewRouter(
 
 			r.Post("/night-audit/run", nightAuditHandler.Run)
 			r.Get("/night-audit/history", nightAuditHandler.History)
+
+			r.Get("/rate-seasons", rateSeasonHandler.List)
+			r.Post("/rate-seasons", rateSeasonHandler.Create)
+			r.Delete("/rate-seasons/{id}", rateSeasonHandler.Delete)
 		})
 
 		r.Group(func(r chi.Router) {
