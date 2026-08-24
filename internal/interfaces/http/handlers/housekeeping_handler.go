@@ -106,10 +106,7 @@ func (h *HousekeepingHandler) ListTasks(w http.ResponseWriter, r *http.Request) 
 	if tasks == nil {
 		tasks = []HousekeepingTask{}
 	}
-
-	httputil.JSON(w, http.StatusOK, map[string]interface{}{
-		"tasks": tasks,
-	})
+	httputil.JSON(w, http.StatusOK, tasks)
 }
 
 func (h *HousekeepingHandler) CreateTask(w http.ResponseWriter, r *http.Request) {

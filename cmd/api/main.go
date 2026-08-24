@@ -166,7 +166,7 @@ func runMigrations(pool *pgxpool.Pool) {
 		if err != nil {
 			log.Fatalf("failed to read %s: %v", name, err)
 		}
-		for _, stmt := range strings.Split(string(sql), ";") {
+		for _, stmt := range splitSQLStatements(string(sql)) {
 			stmt = strings.TrimSpace(stmt)
 			if stmt == "" {
 				continue
@@ -186,4 +186,59 @@ func setupDatabase(connStr string) *pgxpool.Pool {
 		log.Fatalf("database connection failed: %v", err)
 	}
 	return pool
+}
+
+func splitSQLStatements(sql string) []string {
+	var statements []string
+	var current strings.Builder
+	inDollarQuote := false
+
+	for i := 0; i < len(sql); i++ {
+		ch := sql[i]
+
+		if inDollarQuote {
+			current.WriteByte(ch)
+			if ch == '$' && i+1 < len(sql) && sql[i+1] == '$' {
+				inDollarQuote = false
+				current.WriteByte('$')
+				i++
+			}
+			continue
+		}
+
+		if ch == '$' {
+			current.WriteByte(ch)
+			if i+1 < len(sql) && sql[i+1] == '$' {
+				inDollarQuote = true
+				current.WriteByte('$')
+				i++
+			}
+			continue
+		}
+
+		if ch == '-' && i+1 < len(sql) && sql[i+1] == '-' {
+			for i < len(sql) && sql[i] != '\n' {
+				i++
+			}
+			continue
+		}
+
+		if ch == ';' {
+			stmt := strings.TrimSpace(current.String())
+			if stmt != "" {
+				statements = append(statements, stmt)
+			}
+			current.Reset()
+			continue
+		}
+
+		current.WriteByte(ch)
+	}
+
+	stmt := strings.TrimSpace(current.String())
+	if stmt != "" {
+		statements = append(statements, stmt)
+	}
+
+	return statements
 }

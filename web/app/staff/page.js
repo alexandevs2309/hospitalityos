@@ -6,46 +6,46 @@ import {
   Button,
   Card,
   CardContent,
-  EmptyState,
-  ErrorState,
-  Input,
-  LoadingState,
-  Modal,
-  PageHeader,
-  Select,
   StatusBadge,
+  Modal,
+  Input,
+  Select,
+  LoadingState,
+  ErrorState,
+  EmptyState,
   useToast,
 } from "@/components/ui";
+import { Plus, Users, Shield, UserCheck, Loader2, X } from "lucide-react";
 
 const ROLES = ["admin", "manager", "front_desk", "housekeeping", "maintenance", "read_only"];
 
 const roleConfig = {
-  admin: { label: "Admin", tone: "violet", color: "#8b5cf6" },
-  manager: { label: "Gerente", tone: "brand", color: "#1a6bf5" },
-  front_desk: { label: "Recepcion", tone: "success", color: "#10b981" },
-  housekeeping: { label: "Housekeeping", tone: "warning", color: "#f59e0b" },
-  maintenance: { label: "Mantenimiento", tone: "danger", color: "#f43f5e" },
-  read_only: { label: "Solo Lectura", tone: "neutral", color: "#64748b" },
+  admin: { label: "Admin", tone: "gold" },
+  manager: { label: "Gerente", tone: "info" },
+  front_desk: { label: "Recepción", tone: "success" },
+  housekeeping: { label: "Housekeeping", tone: "warning" },
+  maintenance: { label: "Mantenimiento", tone: "danger" },
+  read_only: { label: "Solo Lectura", tone: "neutral" },
+};
+
+const TH = {
+  padding: "12px 20px",
+  textAlign: "left",
+  fontSize: "var(--text-xs)",
+  fontWeight: 600,
+  textTransform: "uppercase",
+  letterSpacing: "0.05em",
+  color: "var(--stone-400)",
 };
 
 const EMPTY_FORM = { full_name: "", email: "", password: "", role: "front_desk" };
 
-function StaffStat({ label, value, cfg }) {
+function StatCard({ label, value }) {
   return (
-    <Card className="hover:shadow-md">
-      <CardContent className="p-6">
-        <div className="flex items-start justify-between">
-          <div>
-            <p className="text-sm font-medium text-slate-500 dark:text-slate-400">{label}</p>
-            <p
-              className={`mt-2 text-3xl font-bold ${!cfg ? "text-slate-900 dark:text-slate-100" : ""}`}
-              style={cfg ? { color: cfg.color } : undefined}
-            >
-              {value}
-            </p>
-          </div>
-          <span className="mt-1.5 h-2.5 w-2.5 rounded-full" style={{ backgroundColor: cfg ? cfg.color : "#94a3b8" }} />
-        </div>
+    <Card>
+      <CardContent className="p-4">
+        <p className="text-xs font-medium uppercase tracking-wider text-stone-400">{label}</p>
+        <p className="mt-1 tabular-nums text-2xl font-semibold text-stone-900">{value}</p>
       </CardContent>
     </Card>
   );
@@ -66,7 +66,7 @@ export default function StaffPage() {
     try {
       setStaff(await listStaff("eden-hotel"));
     } catch (e) {
-      setError(e.message);
+      setError(e.message || "Error al cargar el personal");
     } finally {
       setLoading(false);
     }
@@ -118,88 +118,106 @@ export default function StaffPage() {
 
   return (
     <div className="animate-fade-in">
-      <PageHeader
-        title="Personal"
-        subtitle={`${staff.length} miembros del equipo`}
-        actions={<Button onClick={() => setShowForm(true)}>+ Nuevo Personal</Button>}
-      />
+      <div className="flex flex-wrap items-end justify-between gap-4 mb-6">
+        <div>
+          <h1 className="text-2xl font-semibold text-stone-900">Personal</h1>
+          <p className="text-sm text-stone-400 mt-1">{staff.length} miembros del equipo</p>
+        </div>
+        <Button onClick={() => setShowForm(true)}>
+          <Plus className="w-4 h-4 mr-2" /> Nuevo Personal
+        </Button>
+      </div>
 
       {error ? (
-        <ErrorState message={error} onRetry={load} />
+        <Card>
+          <ErrorState message={error} onRetry={load} />
+        </Card>
       ) : loading ? (
         <LoadingState label="Cargando personal..." />
       ) : (
         <>
-          <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
-            <StaffStat label="Total Staff" value={counts.total} />
-            <StaffStat label="Admins" value={counts.admin} cfg={roleConfig.admin} />
-            <StaffStat label="Managers" value={counts.manager} cfg={roleConfig.manager} />
-            <StaffStat label="Front Desk" value={counts.front_desk} cfg={roleConfig.front_desk} />
-            <StaffStat label="Housekeeping" value={counts.housekeeping} cfg={roleConfig.housekeeping} />
-            <StaffStat label="Maintenance" value={counts.maintenance} cfg={roleConfig.maintenance} />
-            <StaffStat label="Read Only" value={counts.read_only} cfg={roleConfig.read_only} />
+          <div className="mb-6 grid grid-cols-2 gap-4 md:grid-cols-4 xl:grid-cols-7">
+            <StatCard label="Total Staff" value={counts.total} />
+            <StatCard label="Admins" value={counts.admin} />
+            <StatCard label="Managers" value={counts.manager} />
+            <StatCard label="Front Desk" value={counts.front_desk} />
+            <StatCard label="Housekeeping" value={counts.housekeeping} />
+            <StatCard label="Maintenance" value={counts.maintenance} />
+            <StatCard label="Read Only" value={counts.read_only} />
           </div>
 
           <Card className="overflow-hidden">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-slate-200 bg-slate-50 dark:border-slate-800 dark:bg-slate-900">
-                  <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Nombre</th>
-                  <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Email</th>
-                  <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Rol</th>
-                  <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Estado</th>
-                  <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                {staff.map((s) => {
-                  const cfg = roleConfig[s.role] || roleConfig.read_only;
-                  return (
-                    <tr key={s.id} className="border-b border-slate-100 transition-colors last:border-0 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800/50">
-                      <td className="px-5 py-4">
-                        <div className="flex items-center gap-3">
-                          <div
-                            className="flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold"
-                            style={{ backgroundColor: `${cfg.color}18`, color: cfg.color }}
-                          >
-                            {s.full_name?.split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase()}
-                          </div>
-                          <span className="text-sm font-medium text-slate-900 dark:text-slate-100">{s.full_name}</span>
-                        </div>
-                      </td>
-                      <td className="px-5 py-4 text-sm text-slate-600 dark:text-slate-300">{s.email}</td>
-                      <td className="px-5 py-4">
-                        <StatusBadge tone={cfg.tone}>{cfg.label}</StatusBadge>
-                      </td>
-                      <td className="px-5 py-4">
-                        <StatusBadge tone={s.active ? "success" : "neutral"} dot>
-                          {s.active ? "Activo" : "Inactivo"}
-                        </StatusBadge>
-                      </td>
-                      <td className="px-5 py-4">
-                        <Select size="sm" value={s.role} onChange={(e) => handleRoleChange(s.id, e.target.value)} disabled={!s.active} className="disabled:opacity-40">
-                          {ROLES.map((r) => (
-                            <option key={r} value={r}>
-                              {roleConfig[r].label}
-                            </option>
-                          ))}
-                        </Select>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-            {staff.length === 0 && (
+            {staff.length === 0 ? (
               <EmptyState
-                icon="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z"
+                icon={<Users className="w-12 h-12 text-stone-300" />}
                 title="No hay miembros del personal registrados"
-                action={
-                  <Button variant="secondary" onClick={() => setShowForm(true)}>
-                    Crear primer miembro
-                  </Button>
-                }
+                description="Crea el primer miembro del equipo"
+                action={<Button onClick={() => setShowForm(true)}>Crear primer miembro</Button>}
               />
+            ) : (
+              <table className="w-full">
+                <thead>
+                  <tr style={{ borderBottom: "1px solid var(--stone-200)", background: "var(--stone-50)" }}>
+                    <th style={TH}>Nombre</th>
+                    <th style={TH}>Email</th>
+                    <th style={TH}>Rol</th>
+                    <th style={TH}>Estado</th>
+                    <th style={TH}>Cambiar Rol</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {staff.map((s) => {
+                    const cfg = roleConfig[s.role] || roleConfig.read_only;
+                    return (
+                      <tr
+                        key={s.id}
+                        style={{ borderBottom: "1px solid var(--stone-100)" }}
+                        onMouseEnter={(e) => { e.currentTarget.style.background = "var(--stone-50)"; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+                      >
+                        <td style={{ padding: "14px 20px" }}>
+                          <div className="flex items-center gap-3">
+                            <div
+                              className="flex w-8 h-8 shrink-0 items-center justify-center rounded-full"
+                              style={{ background: "var(--gold-100)", color: "var(--gold-700)", fontSize: "var(--text-xs)", fontWeight: 700 }}
+                            >
+                              {s.full_name?.split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase()}
+                            </div>
+                            <span className="text-sm font-medium text-stone-900">{s.full_name}</span>
+                          </div>
+                        </td>
+                        <td style={{ padding: "14px 20px", fontSize: "var(--text-sm)", color: "var(--stone-600)" }}>
+                          <span className="flex items-center gap-1">
+                            <UserCheck className="w-3.5 h-3.5 text-stone-300" />
+                            {s.email}
+                          </span>
+                        </td>
+                        <td style={{ padding: "14px 20px" }}>
+                          <StatusBadge tone={cfg.tone}>{cfg.label}</StatusBadge>
+                        </td>
+                        <td style={{ padding: "14px 20px" }}>
+                          <StatusBadge tone={s.active ? "success" : "neutral"} dot>
+                            {s.active ? "Activo" : "Inactivo"}
+                          </StatusBadge>
+                        </td>
+                        <td style={{ padding: "14px 20px" }}>
+                          <Select
+                            size="sm"
+                            value={s.role}
+                            disabled={!s.active}
+                            onChange={(e) => handleRoleChange(s.id, e.target.value)}
+                            style={{ maxWidth: "160px", opacity: s.active ? 1 : 0.5 }}
+                          >
+                            {ROLES.map((r) => (
+                              <option key={r} value={r}>{roleConfig[r].label}</option>
+                            ))}
+                          </Select>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             )}
           </Card>
         </>
@@ -212,13 +230,11 @@ export default function StaffPage() {
           <Input name="password" type="password" placeholder="Contraseña" value={form.password} onChange={handleChange} required minLength={6} />
           <Select name="role" value={form.role} onChange={handleChange}>
             {ROLES.map((r) => (
-              <option key={r} value={r}>
-                {roleConfig[r].label}
-              </option>
+              <option key={r} value={r}>{roleConfig[r].label}</option>
             ))}
           </Select>
-          <div className="flex justify-end gap-2 pt-2">
-            <Button variant="outline" onClick={() => setShowForm(false)}>
+          <div className="flex justify-end gap-3 pt-2">
+            <Button type="button" variant="outline" onClick={() => setShowForm(false)}>
               Cancelar
             </Button>
             <Button type="submit" loading={creating}>

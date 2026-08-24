@@ -3,42 +3,49 @@
 import { useState, useEffect } from "react";
 import { getFrontDeskToday, checkInReservation, checkOutReservation } from "@/lib/api";
 import {
-  Badge,
   Button,
   Card,
   CardContent,
   CardHeader,
-  EmptyState,
-  ErrorState,
-  LoadingState,
-  PageHeader,
   StatusBadge,
+  EmptyState,
+  LoadingState,
+  ErrorState,
   useToast,
 } from "@/components/ui";
+import { Building2, LogOut, Check, Home, Calendar, Users, Sparkles, Loader2 } from "lucide-react";
 
 const roomStatusConfig = {
-  available: { label: "Disponible", tone: "success", bar: "bg-emerald-500" },
-  occupied: { label: "Ocupada", tone: "warning", bar: "bg-amber-500" },
-  cleaning: { label: "Limpieza", tone: "info", bar: "bg-sky-500" },
-  maintenance: { label: "Mantenimiento", tone: "danger", bar: "bg-rose-500" },
+  available: { label: "Disponible", tone: "success" },
+  occupied: { label: "Ocupada", tone: "warning" },
+  cleaning: { label: "Limpieza", tone: "info" },
+  maintenance: { label: "Mantenimiento", tone: "danger" },
 };
 
 const reservationStatusConfig = {
-  confirmed: { label: "Confirmada", tone: "brand" },
+  confirmed: { label: "Confirmada", tone: "gold" },
   checked_in: { label: "Check-in", tone: "success" },
   checked_out: { label: "Check-out", tone: "neutral" },
   canceled: { label: "Cancelada", tone: "danger" },
   pending: { label: "Pendiente", tone: "warning" },
 };
 
-function SummaryCard({ label, value, color }) {
+const TH = {
+  padding: "12px 20px",
+  textAlign: "left",
+  fontSize: "var(--text-xs)",
+  fontWeight: 600,
+  textTransform: "uppercase",
+  letterSpacing: "0.05em",
+  color: "var(--stone-400)",
+};
+
+function StatCard({ label, value, colorClass }) {
   return (
     <Card>
-      <CardContent className="flex items-center justify-between px-5 py-4">
-        <p className="text-sm font-medium text-slate-500 dark:text-slate-400">{label}</p>
-        <p className="text-2xl font-bold dark:text-slate-100" style={{ color }}>
-          {value}
-        </p>
+      <CardContent className="p-4">
+        <p className="text-xs font-medium uppercase tracking-wider text-stone-400">{label}</p>
+        <p className="mt-1 tabular-nums text-2xl font-semibold" style={{ color: colorClass || "var(--stone-900)" }}>{value}</p>
       </CardContent>
     </Card>
   );
@@ -47,29 +54,26 @@ function SummaryCard({ label, value, color }) {
 function RoomCard({ room }) {
   const sc = roomStatusConfig[room.status] || roomStatusConfig.available;
   return (
-    <Card className="overflow-hidden hover:shadow-md">
-      <div className={`h-1.5 ${sc.bar}`} />
+    <Card>
       <CardContent className="p-4">
-        <div className="mb-2 flex items-start justify-between">
+        <div className="flex items-start justify-between mb-2">
           <div>
-            <p className="text-xl font-bold text-slate-900 dark:text-slate-100">{room.number}</p>
-            <p className="text-xs text-slate-400 dark:text-slate-500">Piso {room.floor || "-"}</p>
+            <p className="text-xl font-semibold text-stone-900">{room.number}</p>
+            <p className="text-xs text-stone-400">Piso {room.floor || "-"}</p>
           </div>
           <StatusBadge tone={sc.tone}>{sc.label}</StatusBadge>
         </div>
+        {room.room_type && (
+          <p className="text-xs text-stone-400">{room.room_type}</p>
+        )}
         {room.status === "occupied" && room.guest_name && (
-          <div className="mt-3 border-t border-slate-100 pt-3 dark:border-slate-800">
-            <div className="flex items-center gap-2">
-              <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-50 dark:bg-brand-500/10">
-                <svg className="h-3.5 w-3.5" fill="none" stroke="#1a6bf5" strokeWidth="2" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                </svg>
-              </div>
-              <p className="truncate text-sm text-slate-600 dark:text-slate-300">{room.guest_name}</p>
+          <div className="flex items-center gap-2 mt-3 pt-3 border-t border-stone-100">
+            <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full" style={{ background: "var(--stone-100)" }}>
+              <UserCheck className="w-4 h-4 text-stone-500" />
             </div>
+            <p className="truncate text-sm text-stone-600">{room.guest_name}</p>
           </div>
         )}
-        {room.room_type && <p className="mt-2 text-xs text-slate-400 dark:text-slate-500">{room.room_type}</p>}
       </CardContent>
     </Card>
   );
@@ -78,40 +82,48 @@ function RoomCard({ room }) {
 function MovementTable({ title, rows, emptyText, renderActions }) {
   return (
     <Card className="overflow-hidden">
-      <CardHeader title={title} className="border-b border-slate-200 dark:border-slate-800" />
-      <table className="w-full">
-        <thead>
-          <tr className="border-b border-slate-200 bg-slate-50 dark:border-slate-800 dark:bg-slate-900">
-            <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Huesped</th>
-            <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Hab.</th>
-            <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Entrada</th>
-            <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Salida</th>
-            <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Accion</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((r) => {
-            const sc = reservationStatusConfig[r.status] || reservationStatusConfig.pending;
-            return (
-              <tr key={r.id} className="border-b border-slate-100 transition-colors last:border-0 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800/50">
-                <td className="px-5 py-4">
-                  <div className="flex items-center gap-2">
-                    <StatusBadge tone={sc.tone}>{sc.label}</StatusBadge>
-                    <span className="text-sm font-medium text-slate-900 dark:text-slate-100">{r.guest_name}</span>
-                  </div>
-                </td>
-                <td className="px-5 py-4 text-sm font-medium text-slate-600 dark:text-slate-300">{r.room_number}</td>
-                <td className="px-5 py-4 text-sm text-slate-500 dark:text-slate-400">{r.check_in}</td>
-                <td className="px-5 py-4 text-sm text-slate-500 dark:text-slate-400">{r.check_out}</td>
-                <td className="px-5 py-4">
-                  <div className="flex justify-end">{renderActions(r)}</div>
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-      {rows.length === 0 && <EmptyState title={emptyText} className="py-10" />}
+      <CardHeader title={title} />
+      {rows.length === 0 ? (
+        <EmptyState title={emptyText} />
+      ) : (
+        <table className="w-full">
+          <thead>
+            <tr style={{ borderBottom: "1px solid var(--stone-200)", background: "var(--stone-50)" }}>
+              <th style={TH}>Huésped</th>
+              <th style={TH}>Hab.</th>
+              <th style={TH}>Entrada</th>
+              <th style={TH}>Salida</th>
+              <th style={{ ...TH, textAlign: "right" }}>Acción</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r) => {
+              const sc = reservationStatusConfig[r.status] || reservationStatusConfig.pending;
+              return (
+                <tr
+                  key={r.id}
+                  style={{ borderBottom: "1px solid var(--stone-100)" }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = "var(--stone-50)"; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+                >
+                  <td style={{ padding: "14px 20px" }}>
+                    <div className="flex items-center gap-2">
+                      <StatusBadge tone={sc.tone}>{sc.label}</StatusBadge>
+                      <span className="text-sm font-medium text-stone-900">{r.guest_name}</span>
+                    </div>
+                  </td>
+                  <td style={{ padding: "14px 20px", fontSize: "var(--text-sm)", fontWeight: 500, color: "var(--stone-600)" }}>{r.room_number}</td>
+                  <td style={{ padding: "14px 20px", fontSize: "var(--text-sm)", color: "var(--stone-500)" }}>{r.check_in}</td>
+                  <td style={{ padding: "14px 20px", fontSize: "var(--text-sm)", color: "var(--stone-500)" }}>{r.check_out}</td>
+                  <td style={{ padding: "14px 20px" }}>
+                    <div className="flex justify-end">{renderActions(r)}</div>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      )}
     </Card>
   );
 }
@@ -146,14 +158,14 @@ export default function FrontDeskPage() {
       toast(action === "checkin" ? "Check-in completado" : "Check-out completado", "success");
       await load();
     } catch (err) {
-      toast(err.message || "No se pudo completar la operacion", "error");
+      toast(err.message || "No se pudo completar la operación", "error");
     } finally {
       setActionInProgress(null);
     }
   }
 
   if (loading) {
-    return <LoadingState label="Cargando recepcion..." />;
+    return <LoadingState label="Cargando recepción..." />;
   }
 
   if (error) {
@@ -161,24 +173,36 @@ export default function FrontDeskPage() {
   }
 
   const summary = data?.summary || {};
+  const rooms = data?.rooms || [];
+
+  const stats = [
+    { label: "Total Hab.", value: summary.total ?? 0, colorClass: "text-stone-900" },
+    { label: "Disponibles", value: summary.available ?? 0, colorClass: "text-emerald-600" },
+    { label: "Ocupadas", value: summary.occupied ?? 0, colorClass: "text-amber-600" },
+    { label: "Llegadas", value: summary.arrivals ?? 0, colorClass: "text-gold-600" },
+    { label: "Salidas", value: summary.departures ?? 0, colorClass: "text-rose-600" },
+    { label: "En Casa", value: summary.in_house ?? 0, colorClass: "text-sky-600" },
+    { label: "En Limpieza", value: summary.cleaning ?? rooms.filter((r) => r.status === "cleaning").length, colorClass: "text-stone-900" },
+  ];
+
   const roomsByStatus = {
-    available: (data?.rooms || []).filter((r) => r.status === "available"),
-    occupied: (data?.rooms || []).filter((r) => r.status === "occupied"),
-    cleaning: (data?.rooms || []).filter((r) => r.status === "cleaning"),
-    maintenance: (data?.rooms || []).filter((r) => r.status === "maintenance"),
+    available: rooms.filter((r) => r.status === "available"),
+    occupied: rooms.filter((r) => r.status === "occupied"),
+    cleaning: rooms.filter((r) => r.status === "cleaning"),
+    maintenance: rooms.filter((r) => r.status === "maintenance"),
   };
 
   return (
     <div className="animate-fade-in">
-      <PageHeader title="Recepcion" subtitle="Panel de operaciones del dia" />
+      <div style={{ marginBottom: "24px" }}>
+        <h1 className="text-2xl font-semibold text-stone-900">Recepción</h1>
+        <p className="text-sm text-stone-400 mt-1">Panel de operaciones del día</p>
+      </div>
 
-      <div className="mb-8 grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-7">
-        <SummaryCard label="Total Hab." value={summary.total ?? 0} color="#1a6bf5" />
-        <SummaryCard label="Disponibles" value={summary.available ?? 0} color="#10b981" />
-        <SummaryCard label="Ocupadas" value={summary.occupied ?? 0} color="#f59e0b" />
-        <SummaryCard label="Llegadas" value={summary.arrivals ?? 0} color="#8b5cf6" />
-        <SummaryCard label="Salidas" value={summary.departures ?? 0} color="#ec4899" />
-        <SummaryCard label="En Casa" value={summary.in_house ?? 0} color="#0ea5e9" />
+      <div className="mb-6 grid grid-cols-2 gap-4 md:grid-cols-4 xl:grid-cols-7">
+        {stats.map((s) => (
+          <StatCard key={s.label} label={s.label} value={s.value} colorClass={s.colorClass} />
+        ))}
       </div>
 
       <div className="mb-8 grid grid-cols-1 gap-5 lg:grid-cols-2">
@@ -189,7 +213,7 @@ export default function FrontDeskPage() {
           renderActions={(r) =>
             r.status !== "checked_in" && (
               <Button variant="success" size="sm" loading={actionInProgress === r.id} onClick={() => handleAction("checkin", r.id)}>
-                {actionInProgress === r.id ? "Procesando..." : "Check-in"}
+                <LogOut className="w-3.5 h-3.5 mr-1" /> Check-in
               </Button>
             )
           }
@@ -201,7 +225,7 @@ export default function FrontDeskPage() {
           renderActions={(r) =>
             r.status === "checked_in" && (
               <Button variant="primary" size="sm" loading={actionInProgress === r.id} onClick={() => handleAction("checkout", r.id)}>
-                {actionInProgress === r.id ? "Procesando..." : "Check-out"}
+                <Check className="w-3.5 h-3.5 mr-1" /> Check-out
               </Button>
             )
           }
@@ -209,17 +233,21 @@ export default function FrontDeskPage() {
       </div>
 
       {[
-        { key: "available", title: "Disponibles" },
-        { key: "occupied", title: "Ocupadas" },
-        { key: "cleaning", title: "En Limpieza" },
-        { key: "maintenance", title: "En Mantenimiento" },
+        { key: "available", title: "Disponibles", icon: Home },
+        { key: "occupied", title: "Ocupadas", icon: Users },
+        { key: "cleaning", title: "En Limpieza", icon: Sparkles },
+        { key: "maintenance", title: "En Mantenimiento", icon: Wrench },
       ].map((group) => (
-        <section key={group.key} className="mb-8 last:mb-0">
-          <div className="mb-4 flex items-center gap-3">
-            <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100" style={{ fontFamily: "var(--font-display)" }}>
-              {group.title}
-            </h2>
-            <Badge>{roomsByStatus[group.key].length}</Badge>
+        <section key={group.key} style={{ marginBottom: "32px" }}>
+          <div className="mb-3 flex items-center gap-2">
+            <group.icon className="w-5 h-5 text-stone-500" />
+            <h2 className="text-base font-semibold text-stone-900">{group.title}</h2>
+            <span
+              className="tabular-nums"
+              style={{ fontSize: "var(--text-xs)", color: "var(--stone-500)", background: "var(--stone-100)", borderRadius: "var(--radius-full)", padding: "2px 8px" }}
+            >
+              {roomsByStatus[group.key].length}
+            </span>
           </div>
           {roomsByStatus[group.key].length > 0 ? (
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6">
@@ -228,8 +256,8 @@ export default function FrontDeskPage() {
               ))}
             </div>
           ) : (
-            <Card className="border-dashed shadow-none">
-              <EmptyState title="Sin habitaciones en este estado" className="py-10" />
+            <Card style={{ borderStyle: "dashed", boxShadow: "none" }}>
+              <EmptyState title="Sin habitaciones en este estado" />
             </Card>
           )}
         </section>

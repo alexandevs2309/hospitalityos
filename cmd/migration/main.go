@@ -12,6 +12,61 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
+func splitStatements(sql string) []string {
+	var statements []string
+	var current strings.Builder
+	inDollarQuote := false
+
+	for i := 0; i < len(sql); i++ {
+		ch := sql[i]
+
+		if inDollarQuote {
+			current.WriteByte(ch)
+			if ch == '$' && i+1 < len(sql) && sql[i+1] == '$' {
+				inDollarQuote = false
+				current.WriteByte('$')
+				i++
+			}
+			continue
+		}
+
+		if ch == '$' {
+			current.WriteByte(ch)
+			if i+1 < len(sql) && sql[i+1] == '$' {
+				inDollarQuote = true
+				current.WriteByte('$')
+				i++
+			}
+			continue
+		}
+
+		if ch == '-' && i+1 < len(sql) && sql[i+1] == '-' {
+			for i < len(sql) && sql[i] != '\n' {
+				i++
+			}
+			continue
+		}
+
+		if ch == ';' {
+			stmt := strings.TrimSpace(current.String())
+			if stmt != "" {
+				statements = append(statements, stmt)
+			}
+			current.Reset()
+			continue
+		}
+
+		current.WriteByte(ch)
+	}
+
+	stmt := strings.TrimSpace(current.String())
+	if stmt != "" {
+		statements = append(statements, stmt)
+	}
+
+	return statements
+}
+
 func main() {
 	connStr := os.Getenv("DATABASE_URL")
 	if connStr == "" {
@@ -55,12 +110,8 @@ func main() {
 			log.Fatalf("failed to read %s: %v", filename, err)
 		}
 
-		statements := strings.Split(string(sql), ";")
+		statements := splitStatements(string(sql))
 		for _, stmt := range statements {
-			stmt = strings.TrimSpace(stmt)
-			if stmt == "" {
-				continue
-			}
 			if _, err := pool.Exec(context.Background(), stmt); err != nil {
 				log.Fatalf("migration %s failed: %v\nSQL: %s", filename, err, stmt)
 			}

@@ -2,127 +2,251 @@
 
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 
-const BUTTON_VARIANTS = {
-  primary: "bg-brand-600 text-white hover:bg-brand-700",
-  secondary: "bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700",
-  outline: "border border-slate-200 bg-transparent text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800",
-  ghost: "text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800",
-  success: "bg-emerald-500 text-white hover:bg-emerald-600",
-  danger: "bg-rose-500 text-white hover:bg-rose-600",
+/* ═══════════════════════════════════════════════════════════════
+   BUTTON
+   ═══════════════════════════════════════════════════════════════ */
+const BTN = {
+  primary:   { bg: "var(--stone-900)", color: "var(--stone-50)", hover: "var(--stone-800)" },
+  secondary: { bg: "var(--stone-100)", color: "var(--stone-700)", hover: "var(--stone-200)" },
+  outline:   { bg: "transparent", color: "var(--stone-700)", hover: "var(--stone-50)", border: "var(--stone-200)" },
+  ghost:     { bg: "transparent", color: "var(--stone-600)", hover: "var(--stone-100)" },
+  success:   { bg: "var(--emerald-500)", color: "white", hover: "var(--emerald-600)" },
+  danger:    { bg: "var(--rose-500)", color: "white", hover: "var(--rose-600)" },
+  gold:      { bg: "var(--gold-500)", color: "white", hover: "var(--gold-600)" },
 };
 
-const BUTTON_SIZES = { sm: "px-3 py-1.5 text-xs", md: "px-5 py-2.5 text-sm" };
+const BTN_SIZE = {
+  xs: "padding: 4px 8px; font-size: var(--text-xs);",
+  sm: "padding: 6px 12px; font-size: var(--text-xs);",
+  md: "padding: 8px 16px; font-size: var(--text-sm);",
+  lg: "padding: 10px 20px; font-size: var(--text-base);",
+};
 
-export function Button({ variant = "primary", size = "md", type = "button", loading = false, disabled, onClick, className = "", children }) {
+export function Button({ variant = "primary", size = "md", type = "button", loading = false, disabled, onClick, className = "", children, href }) {
+  const style = {
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "6px",
+    borderRadius: "var(--radius)",
+    fontWeight: 500,
+    border: BTN[variant]?.border ? `1px solid ${BTN[variant].border}` : "1px solid transparent",
+    background: BTN[variant]?.bg || BTN.primary.bg,
+    color: BTN[variant]?.color || BTN.primary.color,
+    cursor: disabled || loading ? "not-allowed" : "pointer",
+    opacity: disabled || loading ? 0.5 : 1,
+    transition: "all var(--transition-fast)",
+    whiteSpace: "nowrap",
+    ...(BTN_SIZE[size] ? {} : {}),
+    lineHeight: 1.5,
+    fontSize: "var(--text-sm)",
+    padding: size === "xs" ? "4px 8px" : size === "sm" ? "6px 12px" : size === "lg" ? "10px 20px" : "8px 16px",
+  };
+
+  const handlers = {
+    onMouseEnter: (e) => { if (!disabled && !loading) e.currentTarget.style.background = BTN[variant]?.hover || BTN.primary.hover; },
+    onMouseLeave: (e) => { if (!disabled && !loading) e.currentTarget.style.background = BTN[variant]?.bg || BTN.primary.bg; },
+  };
+
+  if (href) {
+    return (
+      <a href={href} style={style} className={className} {...handlers}>
+        {loading && <span className="h-3.5 w-3.5 rounded-full border-2 border-current border-t-transparent animate-spin" />}
+        {children}
+      </a>
+    );
+  }
+
   return (
-    <button
-      type={type}
-      onClick={onClick}
-      disabled={disabled || loading}
-      className={`inline-flex items-center justify-center gap-2 rounded-lg font-medium transition-all duration-150 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 ${BUTTON_VARIANTS[variant] || BUTTON_VARIANTS.primary} ${BUTTON_SIZES[size] || BUTTON_SIZES.md} ${className}`}
-    >
+    <button type={type} onClick={onClick} disabled={disabled || loading} style={style} className={className} {...handlers}>
       {loading && <span className="h-3.5 w-3.5 rounded-full border-2 border-current border-t-transparent animate-spin" />}
       {children}
     </button>
   );
 }
 
-const BADGE_TONES = {
-  neutral: "border-slate-200 bg-slate-100 text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300",
-  brand: "border-brand-200 bg-brand-50 text-brand-700 dark:border-brand-500/30 dark:bg-brand-500/10 dark:text-brand-300",
-  success: "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-400",
-  warning: "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-400",
-  danger: "border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-400",
-  info: "border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-500/30 dark:bg-sky-500/10 dark:text-sky-400",
-  violet: "border-violet-200 bg-violet-50 text-violet-700 dark:border-violet-500/30 dark:bg-violet-500/10 dark:text-violet-400",
-};
-
-const DOT_TONES = {
-  neutral: "bg-slate-400",
-  brand: "bg-brand-500",
-  success: "bg-emerald-500",
-  warning: "bg-amber-500",
-  danger: "bg-rose-500",
-  info: "bg-sky-500",
-  violet: "bg-violet-500",
+/* ═══════════════════════════════════════════════════════════════
+   BADGE — small, no icons, just text + subtle bg
+   ═══════════════════════════════════════════════════════════════ */
+const BADGE = {
+  neutral:  { bg: "var(--stone-100)", color: "var(--stone-600)" },
+  success:  { bg: "var(--emerald-50)", color: "var(--emerald-700)" },
+  warning:  { bg: "var(--amber-50)", color: "var(--amber-700)" },
+  danger:   { bg: "var(--rose-50)", color: "var(--rose-700)" },
+  info:     { bg: "var(--sky-50)", color: "var(--sky-700)" },
+  gold:     { bg: "var(--gold-100)", color: "var(--gold-700)" },
 };
 
 export function Badge({ tone = "neutral", className = "", children }) {
+  const s = BADGE[tone] || BADGE.neutral;
   return (
-    <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${BADGE_TONES[tone] || BADGE_TONES.neutral} ${className}`}>
+    <span
+      className={`inline-flex items-center rounded-full font-medium ${className}`}
+      style={{ padding: "2px 8px", fontSize: "var(--text-xs)", background: s.bg, color: s.color }}
+    >
       {children}
     </span>
   );
 }
 
 export function StatusBadge({ tone = "neutral", dot = false, className = "", children }) {
+  const s = BADGE[tone] || BADGE.neutral;
   return (
-    <span className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border px-2.5 py-1 text-xs font-medium ${BADGE_TONES[tone] || BADGE_TONES.neutral} ${className}`}>
-      {dot && <span className={`h-1.5 w-1.5 rounded-full ${DOT_TONES[tone] || DOT_TONES.neutral}`} />}
+    <span
+      className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full font-medium ${className}`}
+      style={{ padding: "3px 10px", fontSize: "var(--text-xs)", background: s.bg, color: s.color }}
+    >
+      {dot && <span className="w-1.5 h-1.5 rounded-full" style={{ background: s.color }} />}
       {children}
     </span>
   );
 }
 
-export function Card({ className = "", children }) {
-  return <div className={`rounded-xl border border-slate-200 bg-white shadow-sm transition-shadow dark:border-slate-800 dark:bg-slate-900 ${className}`}>{children}</div>;
+/* ═══════════════════════════════════════════════════════════════
+   CARD
+   ═══════════════════════════════════════════════════════════════ */
+export function Card({ className = "", children, style: s = {} }) {
+  return (
+    <div
+      className={className}
+      style={{
+        background: "white",
+        border: "1px solid var(--stone-200)",
+        borderRadius: "var(--radius-lg)",
+        boxShadow: "var(--shadow-sm)",
+        transition: "box-shadow var(--transition-base)",
+        ...s,
+      }}
+    >
+      {children}
+    </div>
+  );
 }
 
 export function CardHeader({ title, action, className = "", children }) {
   return (
-    <div className={`flex items-center justify-between gap-4 px-5 py-4 ${className}`}>
+    <div
+      className={`flex items-center justify-between gap-4 ${className}`}
+      style={{ padding: "16px 20px", borderBottom: "1px solid var(--stone-100)" }}
+    >
       {children ?? (
-        <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100" style={{ fontFamily: "var(--font-display)" }}>
-          {title}
-        </h2>
+        <h2 style={{ fontSize: "var(--text-base)", fontWeight: 600, color: "var(--stone-900)" }}>{title}</h2>
       )}
       {action}
     </div>
   );
 }
 
-export function CardContent({ className = "", children }) {
-  return <div className={className}>{children}</div>;
+export function CardContent({ className = "", children, style: s = {} }) {
+  return <div className={className} style={{ padding: "20px", ...s }}>{children}</div>;
 }
 
-const FIELD_BASE = "w-full rounded-lg border border-slate-200 bg-white text-slate-900 placeholder-slate-400 outline-none transition-colors focus:border-brand-500 focus:ring-2 focus:ring-brand-500 dark:border-slate-700 dark:bg-slate-800 dark:text-white dark:placeholder-slate-500";
-const FIELD_SIZES = { sm: "px-2.5 py-1.5 text-xs", md: "px-3 py-2.5 text-sm" };
+/* ═══════════════════════════════════════════════════════════════
+   FORM FIELDS
+   ═══════════════════════════════════════════════════════════════ */
+const fieldStyle = (size = "md") => ({
+  width: "100%",
+  borderRadius: "var(--radius)",
+  border: "1px solid var(--stone-200)",
+  background: "white",
+  color: "var(--stone-900)",
+  fontSize: size === "sm" ? "var(--text-xs)" : "var(--text-sm)",
+  padding: size === "sm" ? "6px 10px" : "8px 12px",
+  outline: "none",
+  transition: "border-color var(--transition-fast), box-shadow var(--transition-fast)",
+  lineHeight: 1.5,
+});
 
-export function Input({ size = "md", className = "", ...props }) {
-  return <input {...props} className={`${FIELD_BASE} ${FIELD_SIZES[size] || FIELD_SIZES.md} ${className}`} />;
-}
-
-export function Select({ size = "md", className = "", children, ...props }) {
+export function Input({ size = "md", className = "", style: s = {}, ...props }) {
   return (
-    <select {...props} className={`${FIELD_BASE} ${FIELD_SIZES[size] || FIELD_SIZES.md} ${className}`}>
+    <input
+      {...props}
+      className={className}
+      style={{ ...fieldStyle(size), ...s }}
+      onFocus={(e) => { e.target.style.borderColor = "var(--gold-500)"; e.target.style.boxShadow = "0 0 0 3px var(--gold-100)"; }}
+      onBlur={(e) => { e.target.style.borderColor = "var(--stone-200)"; e.target.style.boxShadow = "none"; }}
+    />
+  );
+}
+
+export function Select({ size = "md", className = "", style: s = {}, children, ...props }) {
+  return (
+    <select
+      {...props}
+      className={className}
+      style={{ ...fieldStyle(size), appearance: "none", backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23a8a29e' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`, backgroundRepeat: "no-repeat", backgroundPosition: "right 10px center", paddingRight: "28px", ...s }}
+      onFocus={(e) => { e.target.style.borderColor = "var(--gold-500)"; e.target.style.boxShadow = "0 0 0 3px var(--gold-100)"; }}
+      onBlur={(e) => { e.target.style.borderColor = "var(--stone-200)"; e.target.style.boxShadow = "none"; }}
+    >
       {children}
     </select>
   );
 }
 
-export function Textarea({ size = "md", className = "", ...props }) {
-  return <textarea {...props} className={`${FIELD_BASE} ${FIELD_SIZES[size] || FIELD_SIZES.md} resize-none ${className}`} />;
+export function Textarea({ size = "md", className = "", style: s = {}, ...props }) {
+  return (
+    <textarea
+      {...props}
+      className={className}
+      style={{ ...fieldStyle(size), resize: "none", ...s }}
+      onFocus={(e) => { e.target.style.borderColor = "var(--gold-500)"; e.target.style.boxShadow = "0 0 0 3px var(--gold-100)"; }}
+      onBlur={(e) => { e.target.style.borderColor = "var(--stone-200)"; e.target.style.boxShadow = "none"; }}
+    />
+  );
 }
 
-export function Skeleton({ className = "" }) {
-  return <div className={`rounded-md bg-slate-200/70 dark:bg-slate-800 animate-pulse ${className}`} />;
+/* ═══════════════════════════════════════════════════════════════
+   SKELETON — shimmer animation
+   ═══════════════════════════════════════════════════════════════ */
+export function Skeleton({ className = "", style: s = {} }) {
+  return (
+    <div
+      className={`animate-shimmer ${className}`}
+      style={{ borderRadius: "var(--radius)", ...s }}
+    />
+  );
 }
 
 export function SkeletonCard() {
   return (
-    <Card className="p-6">
-      <Skeleton className="mb-3 h-3 w-20" />
-      <Skeleton className="h-8 w-12" />
+    <Card>
+      <CardContent>
+        <Skeleton style={{ height: "12px", width: "80px", marginBottom: "12px" }} />
+        <Skeleton style={{ height: "28px", width: "48px" }} />
+      </CardContent>
     </Card>
   );
 }
 
+export function SkeletonTable({ rows = 5, cols = 5 }) {
+  return (
+    <Card>
+      <div style={{ padding: "0" }}>
+        <div style={{ display: "flex", gap: "16px", padding: "12px 20px", borderBottom: "1px solid var(--stone-100)" }}>
+          {Array.from({ length: cols }).map((_, i) => <Skeleton key={i} style={{ height: "10px", flex: i === 0 ? "0 0 60px" : "1" }} />)}
+        </div>
+        {Array.from({ length: rows }).map((_, r) => (
+          <div key={r} style={{ display: "flex", gap: "16px", padding: "14px 20px", borderBottom: "1px solid var(--stone-50)" }}>
+            {Array.from({ length: cols }).map((_, c) => <Skeleton key={c} style={{ height: "12px", flex: c === 0 ? "0 0 60px" : "1" }} />)}
+          </div>
+        ))}
+      </div>
+    </Card>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   LOADING / ERROR / EMPTY STATES
+   ═══════════════════════════════════════════════════════════════ */
 export function LoadingState({ label = "Cargando...", className = "" }) {
   return (
-    <div className={`flex items-center justify-center py-24 ${className}`}>
+    <div className={`flex items-center justify-center ${className}`} style={{ padding: "80px 0" }}>
       <div className="flex items-center gap-3">
-        <span className="h-8 w-8 rounded-full border-4 border-brand-200 border-t-brand-600 dark:border-slate-700 dark:border-t-brand-500 animate-spin" />
-        <span className="text-sm text-slate-500 dark:text-slate-400">{label}</span>
+        <span
+          className="w-6 h-6 rounded-full border-2 animate-spin"
+          style={{ borderColor: "var(--stone-200)", borderTopColor: "var(--stone-900)" }}
+        />
+        <span style={{ fontSize: "var(--text-sm)", color: "var(--stone-400)" }}>{label}</span>
       </div>
     </div>
   );
@@ -130,55 +254,59 @@ export function LoadingState({ label = "Cargando...", className = "" }) {
 
 export function ErrorState({ title = "Error al cargar", message, retryLabel = "Reintentar", onRetry, className = "" }) {
   return (
-    <div className={`flex items-center justify-center py-16 ${className}`}>
-      <Card className="w-full max-w-md">
-        <CardContent className="p-8 text-center">
-          <svg className="mx-auto mb-4 h-12 w-12 text-rose-300 dark:text-rose-500" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
-          </svg>
-          <p className="mb-1 font-medium text-slate-900 dark:text-slate-100">{title}</p>
-          {message && <p className="mb-4 text-sm text-slate-500 dark:text-slate-400">{message}</p>}
-          {onRetry && <Button onClick={onRetry}>{retryLabel}</Button>}
-        </CardContent>
-      </Card>
+    <div className={`flex items-center justify-center ${className}`} style={{ padding: "48px 0" }}>
+      <div className="text-center">
+        <svg className="mx-auto mb-3" width="40" height="40" fill="none" stroke="var(--rose-300)" strokeWidth="1.5" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+        </svg>
+        <p className="font-medium" style={{ fontSize: "var(--text-sm)", color: "var(--stone-900)" }}>{title}</p>
+        {message && <p className="mt-1" style={{ fontSize: "var(--text-xs)", color: "var(--stone-400)" }}>{message}</p>}
+        {onRetry && <div className="mt-3"><Button size="sm" onClick={onRetry}>{retryLabel}</Button></div>}
+      </div>
     </div>
   );
 }
 
-const EMPTY_ICON = "M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4";
-
 export function EmptyState({ icon, title, description, action, className = "" }) {
   return (
-    <div className={`flex flex-col items-center justify-center px-6 py-16 text-center ${className}`}>
+    <div className={`flex flex-col items-center justify-center text-center ${className}`} style={{ padding: "64px 24px" }}>
       {icon !== null && (
-        <svg className="mb-4 h-12 w-12 text-slate-300 dark:text-slate-600" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" d={typeof icon === "string" ? icon : EMPTY_ICON} />
-        </svg>
+        <div className="mb-3" style={{ color: "var(--stone-300)" }}>
+          {icon || (
+            <svg width="40" height="40" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+            </svg>
+          )}
+        </div>
       )}
-      <p className="text-sm text-slate-500 dark:text-slate-400">{title}</p>
-      {description && <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">{description}</p>}
+      <p style={{ fontSize: "var(--text-sm)", fontWeight: 500, color: "var(--stone-600)" }}>{title}</p>
+      {description && <p className="mt-1" style={{ fontSize: "var(--text-xs)", color: "var(--stone-400)" }}>{description}</p>}
       {action && <div className="mt-4">{action}</div>}
     </div>
   );
 }
 
+/* ═══════════════════════════════════════════════════════════════
+   PAGE HEADER — rendered in topbar now, but kept for compat
+   ═══════════════════════════════════════════════════════════════ */
 export function PageHeader({ title, subtitle, actions, className = "" }) {
   return (
-    <div className={`mb-8 flex flex-wrap items-end justify-between gap-4 ${className}`}>
+    <div className={`flex flex-wrap items-end justify-between gap-4 ${className}`} style={{ marginBottom: "24px" }}>
       <div>
-        <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100" style={{ fontFamily: "var(--font-display)" }}>
-          {title}
-        </h1>
-        {subtitle && <p className="mt-1 text-slate-500 dark:text-slate-400">{subtitle}</p>}
+        <h1 style={{ fontSize: "var(--text-2xl)", fontWeight: 600, color: "var(--stone-900)" }}>{title}</h1>
+        {subtitle && <p className="mt-1" style={{ fontSize: "var(--text-sm)", color: "var(--stone-400)" }}>{subtitle}</p>}
       </div>
       {actions && <div className="flex items-center gap-2">{actions}</div>}
     </div>
   );
 }
 
+/* ═══════════════════════════════════════════════════════════════
+   FILTER PILLS — compact, rounded
+   ═══════════════════════════════════════════════════════════════ */
 export function FilterPills({ options, value, onChange, className = "" }) {
   return (
-    <div className={`flex flex-wrap gap-2 ${className}`}>
+    <div className={`flex flex-wrap gap-1.5 ${className}`}>
       {options.map((opt) => {
         const active = opt.key === value;
         return (
@@ -186,14 +314,24 @@ export function FilterPills({ options, value, onChange, className = "" }) {
             key={opt.key}
             type="button"
             onClick={() => onChange(opt.key)}
-            className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
-              active
-                ? "bg-slate-900 text-white dark:bg-white dark:text-slate-900"
-                : "border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
-            }`}
+            style={{
+              borderRadius: "var(--radius-full)",
+              padding: "5px 12px",
+              fontSize: "var(--text-xs)",
+              fontWeight: 500,
+              border: active ? "1px solid var(--stone-900)" : "1px solid var(--stone-200)",
+              background: active ? "var(--stone-900)" : "white",
+              color: active ? "white" : "var(--stone-600)",
+              cursor: "pointer",
+              transition: "all var(--transition-fast)",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "4px",
+            }}
           >
+            {opt.icon && <span>{opt.icon}</span>}
             {opt.label}
-            {opt.count != null && <span className="ml-1 text-xs opacity-70">{opt.count}</span>}
+            {opt.count != null && <span className="ml-1 opacity-60">{opt.count}</span>}
           </button>
         );
       })}
@@ -201,12 +339,13 @@ export function FilterPills({ options, value, onChange, className = "" }) {
   );
 }
 
+/* ═══════════════════════════════════════════════════════════════
+   MODAL
+   ═══════════════════════════════════════════════════════════════ */
 export function Modal({ open, onClose, title, maxWidth = "max-w-lg", children }) {
   useEffect(() => {
     if (!open) return undefined;
-    function onKeyDown(e) {
-      if (e.key === "Escape") onClose();
-    }
+    function onKeyDown(e) { if (e.key === "Escape") onClose(); }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [open, onClose]);
@@ -214,31 +353,52 @@ export function Modal({ open, onClose, title, maxWidth = "max-w-lg", children })
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[90] flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/50 animate-backdrop-in" onClick={onClose} />
-      <div role="dialog" aria-modal="true" className={`relative w-full rounded-xl border border-slate-200 bg-white shadow-2xl dark:border-slate-800 dark:bg-slate-900 animate-scale-in ${maxWidth}`}>
-        <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4 dark:border-slate-800">
-          <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100" style={{ fontFamily: "var(--font-display)" }}>
-            {title}
-          </h2>
-          <button type="button" onClick={onClose} aria-label="Cerrar" className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800 dark:hover:text-slate-200">
-            <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+    <div className="fixed inset-0 flex items-center justify-center p-4" style={{ zIndex: "var(--z-modal)" }}>
+      <div className="absolute inset-0 animate-backdrop-in" style={{ background: "rgba(0,0,0,0.4)" }} onClick={onClose} />
+      <div
+        role="dialog"
+        aria-modal="true"
+        className={`relative w-full animate-scale-in ${maxWidth}`}
+        style={{
+          background: "white",
+          border: "1px solid var(--stone-200)",
+          borderRadius: "var(--radius-lg)",
+          boxShadow: "var(--shadow-xl)",
+        }}
+      >
+        <div
+          className="flex items-center justify-between"
+          style={{ padding: "16px 24px", borderBottom: "1px solid var(--stone-100)" }}
+        >
+          <h2 style={{ fontSize: "var(--text-lg)", fontWeight: 600, color: "var(--stone-900)" }}>{title}</h2>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Cerrar"
+            style={{ padding: "6px", borderRadius: "var(--radius)", color: "var(--stone-400)", background: "transparent", border: "none", cursor: "pointer" }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = "var(--stone-100)"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+          >
+            <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         </div>
-        <div className="px-6 pb-6 pt-5">{children}</div>
+        <div style={{ padding: "20px 24px 24px" }}>{children}</div>
       </div>
     </div>
   );
 }
 
+/* ═══════════════════════════════════════════════════════════════
+   TOAST
+   ═══════════════════════════════════════════════════════════════ */
 const ToastContext = createContext(null);
 
-const styles = {
-  success: { icon: "M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z", bar: "bg-emerald-500" },
-  error: { icon: "M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z", bar: "bg-rose-500" },
-  info: { icon: "M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z", bar: "bg-brand-500" },
+const toastStyles = {
+  success: { bar: "var(--emerald-500)", icon: "M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" },
+  error:   { bar: "var(--rose-500)", icon: "M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" },
+  info:    { bar: "var(--sky-500)", icon: "M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" },
 };
 
 let toastId = 0;
@@ -253,32 +413,35 @@ export function ToastProvider({ children }) {
     delete timers.current[id];
   }, []);
 
-  const toast = useCallback(
-    (message, type = "info", duration = 3500) => {
-      const id = ++toastId;
-      setToasts((prev) => [...prev.slice(-4), { id, message, type }]);
-      timers.current[id] = setTimeout(() => dismiss(id), duration);
-      return id;
-    },
-    [dismiss]
-  );
+  const toast = useCallback((message, type = "info", duration = 3500) => {
+    const id = ++toastId;
+    setToasts((prev) => [...prev.slice(-4), { id, message, type }]);
+    timers.current[id] = setTimeout(() => dismiss(id), duration);
+    return id;
+  }, [dismiss]);
 
   return (
     <ToastContext.Provider value={toast}>
       {children}
-      <div className="fixed top-4 right-4 z-[100] flex flex-col gap-2 w-80 max-w-[calc(100vw-2rem)]">
+      <div className="fixed flex flex-col gap-2" style={{ top: "16px", right: "16px", zIndex: "var(--z-toast)", width: "320px", maxWidth: "calc(100vw - 32px)" }}>
         {toasts.map((t) => {
-          const s = styles[t.type] || styles.info;
+          const s = toastStyles[t.type] || toastStyles.info;
           return (
             <div
               key={t.id}
               onClick={() => dismiss(t.id)}
-              className="animate-toast-in cursor-pointer flex items-stretch overflow-hidden rounded-lg shadow-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800"
-              role="status"
+              className="animate-toast-in cursor-pointer flex items-stretch"
+              style={{
+                borderRadius: "var(--radius)",
+                boxShadow: "var(--shadow-lg)",
+                background: "white",
+                border: "1px solid var(--stone-200)",
+                overflow: "hidden",
+              }}
             >
-              <div className={`w-1 shrink-0 ${s.bar}`} />
-              <div className="flex items-center gap-2 px-3 py-3 text-sm text-slate-700 dark:text-slate-200">
-                <svg className={`w-4 h-4 shrink-0 ${s.bar.replace("bg-", "text-")}`} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <div style={{ width: "3px", flexShrink: 0, background: s.bar }} />
+              <div className="flex items-center gap-2" style={{ padding: "10px 12px", fontSize: "var(--text-sm)", color: "var(--stone-700)" }}>
+                <svg width="16" height="16" style={{ flexShrink: 0, color: s.bar }} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" d={s.icon} />
                 </svg>
                 <span className="flex-1">{t.message}</span>

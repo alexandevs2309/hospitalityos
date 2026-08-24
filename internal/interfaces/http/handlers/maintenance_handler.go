@@ -116,10 +116,7 @@ func (h *MaintenanceHandler) List(w http.ResponseWriter, r *http.Request) {
 	if requests == nil {
 		requests = []MaintenanceRequest{}
 	}
-
-	httputil.JSON(w, http.StatusOK, map[string]interface{}{
-		"requests": requests,
-	})
+	httputil.JSON(w, http.StatusOK, requests)
 }
 
 func (h *MaintenanceHandler) Create(w http.ResponseWriter, r *http.Request) {

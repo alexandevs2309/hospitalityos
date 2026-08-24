@@ -3,14 +3,37 @@
 import { useState, useEffect } from "react";
 import { listGuests, createGuest } from "@/lib/api";
 import Link from "next/link";
-import { Card, CardContent, Button, Modal, Input, LoadingState, ErrorState, EmptyState, PageHeader, useToast } from "@/components/ui";
+import {
+  Button,
+  Card,
+  Input,
+  Modal,
+  LoadingState,
+  ErrorState,
+  EmptyState,
+  useToast,
+} from "@/components/ui";
+import { Plus, User, Mail, Phone, Search, Loader2, X } from "lucide-react";
+
+const TH = {
+  padding: "12px 20px",
+  textAlign: "left",
+  fontSize: "var(--text-xs)",
+  fontWeight: 600,
+  textTransform: "uppercase",
+  letterSpacing: "0.05em",
+  color: "var(--stone-400)",
+};
+
+const EMPTY_FORM = { first_name: "", last_name: "", email: "", phone: "" };
 
 export default function GuestsPage() {
   const toast = useToast();
   const [guests, setGuests] = useState([]);
   const [search, setSearch] = useState("");
   const [showModal, setShowModal] = useState(false);
-  const [form, setForm] = useState({ first_name: "", last_name: "", email: "", phone: "" });
+  const [creating, setCreating] = useState(false);
+  const [form, setForm] = useState(EMPTY_FORM);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(null);
 
@@ -19,92 +42,121 @@ export default function GuestsPage() {
       setGuests(await listGuests("eden-hotel", q || undefined));
       setLoadError(null);
     } catch (e) {
-      setLoadError(e.message || "No se pudieron cargar los huespedes");
+      setLoadError(e.message || "No se pudieron cargar los huéspedes");
     } finally {
       setLoading(false);
     }
   }
 
-  useEffect(() => { const t = setTimeout(() => load(search), 300); return () => clearTimeout(t); }, [search]);
+  useEffect(() => {
+    const t = setTimeout(() => load(search), 300);
+    return () => clearTimeout(t);
+  }, [search]);
 
-  function handleChange(e) { setForm({ ...form, [e.target.name]: e.target.value }); }
+  function handleChange(e) {
+    setForm({ ...form, [e.target.name]: e.target.value });
+  }
 
   async function handleCreate(e) {
     e.preventDefault();
+    setCreating(true);
     try {
       await createGuest(form, "eden-hotel");
-      toast.success("Huesped creado");
-      setForm({ first_name: "", last_name: "", email: "", phone: "" });
+      toast("Huésped creado", "success");
+      setForm(EMPTY_FORM);
       setShowModal(false);
-      load(search);
+      await load(search);
     } catch (err) {
-      toast.error(err.message);
+      toast(err.message || "No se pudo crear el huésped", "error");
+    } finally {
+      setCreating(false);
     }
   }
 
   return (
     <div className="animate-fade-in">
-      <PageHeader
-        title="Huespedes"
-        description={`${guests.length} huespedes registrados`}
-        actions={
-          <Button onClick={() => setShowModal(true)}>+ Nuevo Huesped</Button>
-        }
-      />
+      <div style={{ marginBottom: "24px" }}>
+        <h1 className="text-2xl font-semibold text-stone-900">Huéspedes</h1>
+        <p className="text-sm text-stone-400 mt-1">{guests.length} huéspedes registrados</p>
+      </div>
 
       <div className="mb-6">
-        <Input
-          type="search"
-          placeholder="Buscar por nombre, email o telefono..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="w-full max-w-md"
-        />
+        <div className="relative max-w-md">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400" />
+          <Input
+            type="search"
+            placeholder="Buscar por nombre, email o teléfono..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-10"
+          />
+        </div>
       </div>
 
       {loading ? (
         <Card>
-          <LoadingState label="Cargando huespedes..." />
+          <LoadingState label="Cargando huéspedes..." />
         </Card>
       ) : loadError ? (
         <Card>
           <ErrorState message={loadError} onRetry={() => load(search)} />
         </Card>
       ) : (
-        <Card className="overflow-hidden dark:bg-slate-900 dark:border-slate-800">
+        <Card className="overflow-hidden">
           {guests.length === 0 ? (
             <EmptyState
-              icon={
-                <svg className="w-12 h-12" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
-                </svg>
-              }
-              title={search ? "Sin resultados" : "No hay huespedes registrados"}
-              description={search ? `No se encontraron huespedes para "${search}"` : "Registra el primer huesped del hotel"}
-              action={!search && <Button onClick={() => setShowModal(true)}>Registrar primer huesped</Button>}
+              icon={<User className="w-12 h-12 text-stone-300" />}
+              title={search ? "Sin resultados" : "No hay huéspedes registrados"}
+              description={search ? `No se encontraron huéspedes para "${search}"` : "Registra el primer huésped del hotel"}
+              action={!search && <Button onClick={() => setShowModal(true)}>Registrar primer huésped</Button>}
             />
           ) : (
             <table className="w-full">
               <thead>
-                <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900">
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Nombre</th>
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Email</th>
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Telefono</th>
+                <tr style={{ borderBottom: "1px solid var(--stone-200)", background: "var(--stone-50)" }}>
+                  <th style={TH}>Nombre</th>
+                  <th style={TH}>Email</th>
+                  <th style={TH}>Teléfono</th>
                 </tr>
               </thead>
               <tbody>
                 {guests.map((g) => (
-                  <tr key={g.id} className="border-b border-slate-100 dark:border-slate-800 last:border-0 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                    <td className="px-5 py-4">
+                  <tr
+                    key={g.id}
+                    style={{ borderBottom: "1px solid var(--stone-100)" }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = "var(--stone-50)"; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+                  >
+                    <td style={{ padding: "14px 20px" }}>
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-brand-100 text-brand-700 dark:bg-brand-500/15 dark:text-brand-300 flex items-center justify-center text-xs font-bold">
-                          {g.first_name?.[0]}{g.last_name?.[0]}
+                        <div
+                          className="flex w-8 h-8 shrink-0 items-center justify-center rounded-full"
+                          style={{ background: "var(--gold-100)", color: "var(--gold-700)", fontSize: "var(--text-xs)", fontWeight: 700 }}
+                        >
+                          {`${g.first_name?.[0] || ""}${g.last_name?.[0] || ""}`.toUpperCase()}
                         </div>
-                        <Link href={`/guests/${g.id}`} className="text-sm font-medium text-brand-700 hover:text-brand-800 hover:underline dark:text-brand-400 dark:hover:text-brand-300">{g.first_name} {g.last_name}</Link>
+                        <Link
+                          href={`/guests/${g.id}`}
+                          style={{ fontSize: "var(--text-sm)", fontWeight: 500, color: "var(--stone-900)", textDecoration: "none" }}
+                          onMouseEnter={(e) => { e.currentTarget.style.textDecoration = "underline"; }}
+                          onMouseLeave={(e) => { e.currentTarget.style.textDecoration = "none"; }}
+                        >
+                          {g.first_name} {g.last_name}
+                        </Link>
                       </div>
                     </td>
-                    <td className="px-5 py-4 text-sm text-slate-600 dark:text-slate-300">{g.email}</td>
-                    <td className="px-5 py-4 text-sm text-slate-600 dark:text-slate-300">{g.phone || "-"}</td>
+                    <td style={{ padding: "14px 20px", fontSize: "var(--text-sm)", color: "var(--stone-600)" }}>
+                      <span className="flex items-center gap-1">
+                        <Mail className="w-3.5 h-3.5 text-stone-300" />
+                        {g.email}
+                      </span>
+                    </td>
+                    <td style={{ padding: "14px 20px", fontSize: "var(--text-sm)", color: "var(--stone-600)" }}>
+                      <span className="flex items-center gap-1">
+                        <Phone className="w-3.5 h-3.5 text-stone-300" />
+                        {g.phone || "-"}
+                      </span>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -113,17 +165,21 @@ export default function GuestsPage() {
         </Card>
       )}
 
-      <Modal open={showModal} onClose={() => setShowModal(false)} title="Nuevo Huesped">
+      <Modal open={showModal} onClose={() => setShowModal(false)} title="Nuevo Huésped">
         <form onSubmit={handleCreate} className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <Input name="first_name" placeholder="Nombre" value={form.first_name} onChange={handleChange} required />
             <Input name="last_name" placeholder="Apellido" value={form.last_name} onChange={handleChange} required />
           </div>
           <Input name="email" type="email" placeholder="Email" value={form.email} onChange={handleChange} required />
-          <Input name="phone" placeholder="Telefono" value={form.phone} onChange={handleChange} />
+          <Input name="phone" placeholder="Teléfono" value={form.phone} onChange={handleChange} />
           <div className="flex justify-end gap-3 pt-2">
-            <Button type="button" variant="outline" onClick={() => setShowModal(false)}>Cancelar</Button>
-            <Button type="submit">Crear</Button>
+            <Button type="button" variant="outline" onClick={() => setShowModal(false)}>
+              Cancelar
+            </Button>
+            <Button type="submit" loading={creating}>
+              Crear
+            </Button>
           </div>
         </form>
       </Modal>

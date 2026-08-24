@@ -3,52 +3,22 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { getFolio, addFolioEntry, closeFolio, createPayment } from "@/lib/api";
+import { Button, Card, CardContent, StatusBadge, Input, Select, LoadingState, ErrorState, useToast } from "@/components/ui";
 
 const TENANT_ID = "eden-hotel";
 
 const TYPE_CONFIG = {
-  charge: {
-    label: "Cargo",
-    badge: "bg-rose-100 text-rose-800",
-    amount: "text-rose-600",
-  },
-  payment: {
-    label: "Pago",
-    badge: "bg-emerald-100 text-emerald-800",
-    amount: "text-emerald-600",
-  },
-  refund: {
-    label: "Reembolso",
-    badge: "bg-amber-100 text-amber-800",
-    amount: "text-emerald-600",
-  },
-  deposit: {
-    label: "Depósito",
-    badge: "bg-sky-100 text-sky-800",
-    amount: "text-emerald-600",
-  },
-  adjustment: {
-    label: "Ajuste",
-    badge: "bg-slate-100 text-slate-800",
-    amount: "text-emerald-600",
-  },
-  transfer: {
-    label: "Transferencia",
-    badge: "bg-violet-100 text-violet-800",
-    amount: "text-emerald-600",
-  },
+  charge: { label: "Cargo", tone: "danger" },
+  payment: { label: "Pago", tone: "success" },
+  refund: { label: "Reembolso", tone: "warning" },
+  deposit: { label: "Deposito", tone: "info" },
+  adjustment: { label: "Ajuste", tone: "neutral" },
+  transfer: { label: "Transferencia", tone: "gold" },
 };
 
-const FALLBACK_TYPE = {
-  label: "Otro",
-  badge: "bg-slate-100 text-slate-800",
-  amount: "text-slate-600",
-};
+const FALLBACK_TYPE = { label: "Otro", tone: "neutral" };
 
-const numberFormat = new Intl.NumberFormat("en-US", {
-  minimumFractionDigits: 0,
-  maximumFractionDigits: 2,
-});
+const numberFormat = new Intl.NumberFormat("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
 
 function formatMoney(cents, currency = "DOP") {
   const sign = cents < 0 ? "-" : "";
@@ -57,16 +27,31 @@ function formatMoney(cents, currency = "DOP") {
 
 function formatDate(value) {
   if (!value) return "—";
-  return new Date(value).toLocaleString("es-DO", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  });
+  return new Date(value).toLocaleString("es-DO", { dateStyle: "medium", timeStyle: "short" });
 }
+
+const thStyle = {
+  textAlign: "left",
+  padding: "10px 16px",
+  fontSize: "var(--text-xs)",
+  fontWeight: 600,
+  color: "var(--stone-500)",
+  textTransform: "uppercase",
+  letterSpacing: "0.05em",
+};
+
+const tdBase = { padding: "12px 16px", fontSize: "var(--text-sm)" };
+
+const rowHover = {
+  onMouseEnter: (e) => { e.currentTarget.style.background = "var(--stone-50)"; },
+  onMouseLeave: (e) => { e.currentTarget.style.background = "transparent"; },
+};
 
 export default function FolioPage() {
   const params = useParams();
   const router = useRouter();
   const reservationId = params?.id;
+  const toast = useToast();
 
   const [folio, setFolio] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -76,7 +61,6 @@ export default function FolioPage() {
   const [submitting, setSubmitting] = useState(false);
   const [closing, setClosing] = useState(false);
   const [confirmClose, setConfirmClose] = useState(false);
-  const [actionError, setActionError] = useState(null);
 
   const loadFolio = useCallback(async () => {
     if (!reservationId) return;
@@ -92,47 +76,27 @@ export default function FolioPage() {
     }
   }, [reservationId]);
 
-  useEffect(() => {
-    loadFolio();
-  }, [loadFolio]);
+  useEffect(() => { loadFolio(); }, [loadFolio]);
 
   const totals = useMemo(() => {
     const entries = folio?.entries ?? [];
-    const charges = entries
-      .filter((entry) => entry.type === "charge")
-      .reduce((sum, entry) => sum + entry.amount_cents, 0);
-    const credits = entries
-      .filter((entry) => entry.type !== "charge")
-      .reduce((sum, entry) => sum + entry.amount_cents, 0);
-    return {
-      charges,
-      credits,
-      balance: folio?.balance ?? 0,
-    };
+    const charges = entries.filter((e) => e.type === "charge").reduce((sum, e) => sum + e.amount_cents, 0);
+    const credits = entries.filter((e) => e.type !== "charge").reduce((sum, e) => sum + e.amount_cents, 0);
+    return { charges, credits, balance: folio?.balance ?? 0 };
   }, [folio]);
 
   const isClosed = Boolean(folio?.closed);
   const canClose = !isClosed && totals.balance === 0;
   const entries = folio?.entries ?? [];
 
-  const handleAddEntry = async (event) => {
-    event.preventDefault();
-    setActionError(null);
-
+  const handleAddEntry = async (e) => {
+    e.preventDefault();
     const amountPesos = Number.parseFloat(form.amount);
     if (!form.description.trim() || Number.isNaN(amountPesos) || amountPesos <= 0) {
-      setActionError("Completa la descripción y un monto válido.");
+      toast("Completa la descripcion y un monto valido.", "error");
       return;
     }
-
-    const payload = {
-      type: form.type,
-      description: form.description.trim(),
-      amount_cents: Math.round(amountPesos * 100),
-      currency: "DOP",
-      reference: "",
-    };
-
+    const payload = { type: form.type, description: form.description.trim(), amount_cents: Math.round(amountPesos * 100), currency: "DOP", reference: "" };
     try {
       setSubmitting(true);
       if (form.type === "payment") {
@@ -141,317 +105,181 @@ export default function FolioPage() {
         await addFolioEntry(reservationId, payload, TENANT_ID);
       }
       setForm({ type: form.type, description: "", amount: "" });
+      toast("Movimiento registrado", "success");
       await loadFolio();
     } catch (err) {
-      setActionError(
-        err instanceof Error ? err.message : "No se pudo registrar el movimiento"
-      );
+      toast(err instanceof Error ? err.message : "No se pudo registrar el movimiento", "error");
     } finally {
       setSubmitting(false);
     }
   };
 
   const handleCloseFolio = async () => {
-    setActionError(null);
     try {
       setClosing(true);
       await closeFolio(reservationId, TENANT_ID);
       setConfirmClose(false);
+      toast("Folio cerrado", "success");
       await loadFolio();
     } catch (err) {
-      setActionError(
-        err instanceof Error ? err.message : "No se pudo cerrar el folio"
-      );
+      toast(err instanceof Error ? err.message : "No se pudo cerrar el folio", "error");
     } finally {
       setClosing(false);
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-50">
-        <div className="flex flex-col items-center gap-3">
-          <div className="h-10 w-10 animate-spin rounded-full border-4 border-slate-200 border-t-brand-600" />
-          <p className="text-sm text-slate-500">Cargando folio…</p>
-        </div>
-      </div>
-    );
-  }
-
+  if (loading) return <LoadingState label="Cargando folio..." />;
   if (error || !folio) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
-        <div className="w-full max-w-md rounded-xl border border-slate-200 bg-white p-6 text-center">
-          <h1
-            className="text-xl font-bold text-slate-900"
-            style={{ fontFamily: "var(--font-display)" }}
-          >
-            Error al cargar el folio
-          </h1>
-          <p className="mt-2 text-sm text-slate-500">
-            {error || "No se encontró el folio de esta reserva."}
-          </p>
-          <button
-            onClick={loadFolio}
-            className="mt-4 inline-flex items-center justify-center rounded-lg bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-700"
-          >
-            Reintentar
-          </button>
-        </div>
-      </div>
+      <Card>
+        <ErrorState title="Error al cargar el folio" message={error || "No se encontro el folio de esta reserva."} onRetry={loadFolio} />
+      </Card>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <div className="mx-auto max-w-5xl space-y-6 px-4 py-8 sm:px-6 lg:px-8">
-        <header className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            <button
-              onClick={() => router.push("/reservations")}
-              className="inline-flex items-center gap-1 text-sm font-medium text-slate-500 transition-colors hover:text-brand-700"
-            >
-              ← Volver a Reserva
-            </button>
-            <div className="mt-1 flex flex-wrap items-center gap-3">
-              <h1
-                className="text-3xl font-bold text-slate-900"
-                style={{ fontFamily: "var(--font-display)" }}
-              >
-                Folio
-              </h1>
-              {isClosed && (
-                <span className="inline-flex items-center rounded-full bg-slate-200 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-slate-700">
-                  Folio Cerrado
-                </span>
-              )}
-            </div>
-            <p className="mt-1 font-mono text-sm text-slate-500">
-              Reserva: {reservationId}
-            </p>
-          </div>
-        </header>
-
-        <section className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <div className="rounded-xl border border-slate-200 bg-white p-6">
-            <p className="text-sm font-medium text-slate-500">Total Cargos</p>
-            <p className="mt-1 text-2xl font-semibold text-rose-600">
-              {formatMoney(totals.charges)}
-            </p>
-          </div>
-          <div className="rounded-xl border border-slate-200 bg-white p-6">
-            <p className="text-sm font-medium text-slate-500">Total Pagos</p>
-            <p className="mt-1 text-2xl font-semibold text-emerald-600">
-              {formatMoney(Math.abs(totals.credits))}
-            </p>
-          </div>
-          <div className="rounded-xl border border-slate-200 bg-white p-6">
-            <p className="text-sm font-medium text-slate-500">Balance</p>
-            <p
-              className={`mt-1 text-2xl font-semibold ${
-                totals.balance === 0 ? "text-emerald-600" : "text-blue-600"
-              }`}
-            >
-              {formatMoney(totals.balance)}
-            </p>
-          </div>
-        </section>
-
-        <section className="rounded-xl border border-slate-200 bg-white p-6">
-          <h2
-            className="text-lg font-semibold text-slate-900"
-            style={{ fontFamily: "var(--font-display)" }}
+    <div className="animate-fade-in">
+      <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <button
+            onClick={() => router.push("/reservations")}
+            className="mb-2 inline-flex items-center gap-1"
+            style={{ fontSize: "var(--text-sm)", fontWeight: 500, color: "var(--stone-500)", background: "none", border: "none", cursor: "pointer" }}
           >
-            Movimientos
-          </h2>
-          {entries.length === 0 ? (
-            <div className="mt-4 rounded-lg border border-dashed border-slate-300 p-8 text-center">
-              <p className="text-sm text-slate-500">
-                No hay movimientos registrados en este folio.
-              </p>
-            </div>
-          ) : (
-            <div className="mt-4 overflow-x-auto">
-              <table className="w-full text-left text-sm">
-                <thead>
-                  <tr className="border-b border-slate-200 text-xs uppercase tracking-wide text-slate-500">
-                    <th className="px-3 py-3 font-medium">Fecha</th>
-                    <th className="px-3 py-3 font-medium">Tipo</th>
-                    <th className="px-3 py-3 font-medium">Descripción</th>
-                    <th className="px-3 py-3 text-right font-medium">Monto</th>
-                    <th className="px-3 py-3 font-medium">Referencia</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {entries.map((entry) => {
-                    const config = TYPE_CONFIG[entry.type] ?? FALLBACK_TYPE;
-                    return (
-                      <tr key={entry.id} className="transition-colors hover:bg-slate-50">
-                        <td className="whitespace-nowrap px-3 py-3 text-slate-600">
-                          {formatDate(entry.created_at)}
-                        </td>
-                        <td className="px-3 py-3">
-                          <span
-                            className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${config.badge}`}
-                          >
-                            {config.label}
-                          </span>
-                        </td>
-                        <td className="px-3 py-3 font-medium text-slate-800">
-                          {entry.description}
-                        </td>
-                        <td
-                          className={`whitespace-nowrap px-3 py-3 text-right font-semibold ${
-                            entry.type === "charge"
-                              ? "text-rose-600"
-                              : "text-emerald-600"
-                          }`}
-                        >
-                          {formatMoney(entry.amount_cents, entry.currency)}
-                        </td>
-                        <td className="px-3 py-3 text-slate-500">
-                          {entry.reference || "—"}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </section>
+            &larr; Volver a Reserva
+          </button>
+          <div className="flex items-center gap-3">
+            <h1 style={{ fontSize: "var(--text-2xl)", fontWeight: 600, color: "var(--stone-900)" }}>Folio</h1>
+            {isClosed && <StatusBadge tone="neutral">Folio Cerrado</StatusBadge>}
+          </div>
+          <p className="mt-1 font-mono" style={{ fontSize: "var(--text-sm)", color: "var(--stone-400)" }}>Reserva: {reservationId}</p>
+        </div>
+      </div>
 
-        {!isClosed ? (
-          <>
-            <section className="rounded-xl border border-slate-200 bg-white p-6">
-              <h2
-                className="text-lg font-semibold text-slate-900"
-                style={{ fontFamily: "var(--font-display)" }}
-              >
-                Agregar Movimiento
-              </h2>
-              <form onSubmit={handleAddEntry} className="mt-4 grid gap-4 sm:grid-cols-4">
-                <div className="flex flex-col gap-1.5">
-                  <label htmlFor="entry-type" className="text-sm font-medium text-slate-700">
-                    Tipo
-                  </label>
-                  <select
-                    id="entry-type"
-                    value={form.type}
-                    onChange={(e) =>
-                      setForm((prev) => ({ ...prev, type: e.target.value }))
-                    }
-                    className="rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-800 focus:border-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-600/20"
-                  >
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 mb-6">
+        <Card>
+          <CardContent>
+            <p style={{ fontSize: "var(--text-sm)", fontWeight: 500, color: "var(--stone-500)" }}>Total Cargos</p>
+            <p className="mt-1 tabular-nums" style={{ fontSize: "var(--text-2xl)", fontWeight: 700, color: "var(--rose-600)" }}>{formatMoney(totals.charges)}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent>
+            <p style={{ fontSize: "var(--text-sm)", fontWeight: 500, color: "var(--stone-500)" }}>Total Pagos</p>
+            <p className="mt-1 tabular-nums" style={{ fontSize: "var(--text-2xl)", fontWeight: 700, color: "var(--emerald-600)" }}>{formatMoney(Math.abs(totals.credits))}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent>
+            <p style={{ fontSize: "var(--text-sm)", fontWeight: 500, color: "var(--stone-500)" }}>Balance</p>
+            <p className="mt-1 tabular-nums" style={{ fontSize: "var(--text-2xl)", fontWeight: 700, color: totals.balance === 0 ? "var(--emerald-600)" : "var(--stone-900)" }}>{formatMoney(totals.balance)}</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card className="mb-6" style={{ overflow: "hidden" }}>
+        <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--stone-100)" }}>
+          <h2 style={{ fontSize: "var(--text-base)", fontWeight: 600, color: "var(--stone-900)" }}>Movimientos</h2>
+        </div>
+        {entries.length === 0 ? (
+          <div className="flex items-center justify-center" style={{ padding: "48px 0" }}>
+            <p style={{ fontSize: "var(--text-sm)", color: "var(--stone-400)" }}>No hay movimientos registrados en este folio.</p>
+          </div>
+        ) : (
+          <table className="w-full">
+            <thead>
+              <tr style={{ background: "var(--stone-50)", borderBottom: "1px solid var(--stone-200)" }}>
+                <th style={thStyle}>Fecha</th>
+                <th style={thStyle}>Tipo</th>
+                <th style={thStyle}>Descripcion</th>
+                <th style={{ ...thStyle, textAlign: "right" }}>Monto</th>
+                <th style={thStyle}>Referencia</th>
+              </tr>
+            </thead>
+            <tbody>
+              {entries.map((entry) => {
+                const config = TYPE_CONFIG[entry.type] ?? FALLBACK_TYPE;
+                return (
+                  <tr key={entry.id} style={{ borderBottom: "1px solid var(--stone-100)" }} {...rowHover}>
+                    <td style={{ ...tdBase, color: "var(--stone-600)" }}>{formatDate(entry.created_at)}</td>
+                    <td style={tdBase}><StatusBadge tone={config.tone}>{config.label}</StatusBadge></td>
+                    <td style={{ ...tdBase, fontWeight: 500, color: "var(--stone-900)" }}>{entry.description}</td>
+                    <td className="tabular-nums" style={{ ...tdBase, textAlign: "right", fontWeight: 600, color: entry.type === "charge" ? "var(--rose-600)" : "var(--emerald-600)" }}>
+                      {formatMoney(entry.amount_cents, entry.currency)}
+                    </td>
+                    <td style={{ ...tdBase, color: "var(--stone-500)" }}>{entry.reference || "—"}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        )}
+      </Card>
+
+      {!isClosed ? (
+        <>
+          <Card className="mb-6">
+            <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--stone-100)" }}>
+              <h2 style={{ fontSize: "var(--text-base)", fontWeight: 600, color: "var(--stone-900)" }}>Agregar Movimiento</h2>
+            </div>
+            <CardContent>
+              <form onSubmit={handleAddEntry} className="grid gap-4 sm:grid-cols-4">
+                <div>
+                  <label className="mb-1.5 block" style={{ fontSize: "var(--text-xs)", fontWeight: 500, color: "var(--stone-600)" }}>Tipo</label>
+                  <Select value={form.type} onChange={(e) => setForm((prev) => ({ ...prev, type: e.target.value }))}>
                     <option value="charge">Cargo</option>
                     <option value="payment">Pago</option>
                     <option value="adjustment">Ajuste</option>
-                  </select>
+                  </Select>
                 </div>
-                <div className="flex flex-col gap-1.5 sm:col-span-2">
-                  <label htmlFor="entry-description" className="text-sm font-medium text-slate-700">
-                    Descripción
-                  </label>
-                  <input
-                    id="entry-description"
-                    type="text"
-                    value={form.description}
-                    onChange={(e) =>
-                      setForm((prev) => ({ ...prev, description: e.target.value }))
-                    }
-                    placeholder="Ej. Habitación noche 2"
-                    className="rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-800 placeholder:text-slate-400 focus:border-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-600/20"
-                  />
+                <div className="sm:col-span-2">
+                  <label className="mb-1.5 block" style={{ fontSize: "var(--text-xs)", fontWeight: 500, color: "var(--stone-600)" }}>Descripcion</label>
+                  <Input type="text" value={form.description} onChange={(e) => setForm((prev) => ({ ...prev, description: e.target.value }))} placeholder="Ej. Habitacion noche 2" />
                 </div>
-                <div className="flex flex-col gap-1.5">
-                  <label htmlFor="entry-amount" className="text-sm font-medium text-slate-700">
-                    Monto (DOP)
-                  </label>
-                  <input
-                    id="entry-amount"
-                    type="number"
-                    min="0.01"
-                    step="0.01"
-                    value={form.amount}
-                    onChange={(e) =>
-                      setForm((prev) => ({ ...prev, amount: e.target.value }))
-                    }
-                    placeholder="0.00"
-                    className="rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-800 placeholder:text-slate-400 focus:border-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-600/20"
-                  />
+                <div>
+                  <label className="mb-1.5 block" style={{ fontSize: "var(--text-xs)", fontWeight: 500, color: "var(--stone-600)" }}>Monto (DOP)</label>
+                  <Input type="number" min="0.01" step="0.01" value={form.amount} onChange={(e) => setForm((prev) => ({ ...prev, amount: e.target.value }))} placeholder="0.00" />
                 </div>
                 <div className="sm:col-span-4">
-                  {actionError && (
-                    <p className="mb-3 text-sm font-medium text-rose-600">{actionError}</p>
-                  )}
-                  <button
-                    type="submit"
-                    disabled={submitting}
-                    className="inline-flex items-center justify-center rounded-lg bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    {submitting ? "Registrando…" : "Agregar al Folio"}
-                  </button>
+                  <Button type="submit" loading={submitting}>{submitting ? "Registrando..." : "Agregar al Folio"}</Button>
                 </div>
               </form>
-            </section>
+            </CardContent>
+          </Card>
 
-            <section className="rounded-xl border border-slate-200 bg-white p-6">
+          <Card>
+            <CardContent>
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <h2
-                    className="text-lg font-semibold text-slate-900"
-                    style={{ fontFamily: "var(--font-display)" }}
-                  >
-                    Cerrar Folio
-                  </h2>
-                  <p className="mt-1 text-sm text-slate-500">
+                  <h2 style={{ fontSize: "var(--text-base)", fontWeight: 600, color: "var(--stone-900)" }}>Cerrar Folio</h2>
+                  <p className="mt-1" style={{ fontSize: "var(--text-sm)", color: "var(--stone-500)" }}>
                     {canClose
-                      ? "El balance está en cero. Puedes cerrar este folio."
-                      : `El balance debe estar en cero para cerrar el folio (actual: ${formatMoney(
-                          totals.balance
-                        )}).`}
+                      ? "El balance esta en cero. Puedes cerrar este folio."
+                      : `El balance debe estar en cero para cerrar el folio (actual: ${formatMoney(totals.balance)}).`}
                   </p>
                 </div>
                 {!confirmClose ? (
-                  <button
-                    onClick={() => setConfirmClose(true)}
-                    disabled={!canClose}
-                    className="inline-flex shrink-0 items-center justify-center rounded-lg bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    Cerrar Folio
-                  </button>
+                  <Button onClick={() => setConfirmClose(true)} disabled={!canClose}>Cerrar Folio</Button>
                 ) : (
-                  <div className="flex shrink-0 items-center gap-2">
-                    <span className="text-sm font-medium text-slate-600">
-                      ¿Confirmar cierre?
-                    </span>
-                    <button
-                      onClick={handleCloseFolio}
-                      disabled={closing}
-                      className="inline-flex items-center justify-center rounded-lg bg-rose-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      {closing ? "Cerrando…" : "Sí, cerrar"}
-                    </button>
-                    <button
-                      onClick={() => setConfirmClose(false)}
-                      disabled={closing}
-                      className="inline-flex items-center justify-center rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      Cancelar
-                    </button>
+                  <div className="flex items-center gap-2">
+                    <span style={{ fontSize: "var(--text-sm)", fontWeight: 500, color: "var(--stone-600)" }}>Confirmar cierre?</span>
+                    <Button variant="danger" onClick={handleCloseFolio} loading={closing}>Si, cerrar</Button>
+                    <Button variant="outline" onClick={() => setConfirmClose(false)} disabled={closing}>Cancelar</Button>
                   </div>
                 )}
               </div>
-            </section>
-          </>
-        ) : (
-          <section className="rounded-xl border border-slate-200 bg-white p-6 text-center">
-            <p className="text-sm text-slate-500">
-              Este folio está cerrado y no admite nuevos movimientos.
+            </CardContent>
+          </Card>
+        </>
+      ) : (
+        <Card>
+          <CardContent>
+            <p style={{ fontSize: "var(--text-sm)", color: "var(--stone-500)", textAlign: "center" }}>
+              Este folio esta cerrado y no admite nuevos movimientos.
             </p>
-          </section>
-        )}
-      </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

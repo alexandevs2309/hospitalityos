@@ -1,124 +1,126 @@
-@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import "../lib/design-tokens.css";
 @import "tailwindcss";
 
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-  --font-display: "Cormorant Garamond", Georgia, serif;
-  --font-body: "Inter", system-ui, sans-serif;
+  --font-body: var(--font-body);
+  --font-mono: var(--font-mono);
 
-  --color-brand-50: #eef7ff;
-  --color-brand-100: #d9edff;
-  --color-brand-200: #bce0ff;
-  --color-brand-300: #8eceff;
-  --color-brand-400: #59b1ff;
-  --color-brand-500: #338bff;
-  --color-brand-600: #1a6bf5;
-  --color-brand-700: #1455e1;
-  --color-brand-800: #1744b6;
-  --color-brand-900: #193d8f;
-  --color-brand-950: #142657;
+  --color-stone-50:  var(--stone-50);
+  --color-stone-100: var(--stone-100);
+  --color-stone-200: var(--stone-200);
+  --color-stone-300: var(--stone-300);
+  --color-stone-400: var(--stone-400);
+  --color-stone-500: var(--stone-500);
+  --color-stone-600: var(--stone-600);
+  --color-stone-700: var(--stone-700);
+  --color-stone-800: var(--stone-800);
+  --color-stone-900: var(--stone-900);
 
-  --color-emerald-50: #ecfdf5;
-  --color-emerald-100: #d1fae5;
-  --color-emerald-200: #a7f3d0;
-  --color-emerald-500: #10b981;
-  --color-emerald-600: #059669;
-  --color-emerald-700: #047857;
+  --color-gold-50:  var(--gold-50);
+  --color-gold-100: var(--gold-100);
+  --color-gold-200: var(--gold-200);
+  --color-gold-300: var(--gold-300);
+  --color-gold-400: var(--gold-400);
+  --color-gold-500: var(--gold-500);
+  --color-gold-600: var(--gold-600);
+  --color-gold-700: var(--gold-700);
 
-  --color-amber-50: #fffbeb;
-  --color-amber-100: #fef3c7;
-  --color-amber-200: #fde68a;
-  --color-amber-500: #f59e0b;
-  --color-amber-600: #d97706;
-  --color-amber-700: #b45309;
+  --color-emerald-50:  var(--emerald-50);
+  --color-emerald-100: var(--emerald-100);
+  --color-emerald-200: var(--emerald-200);
+  --color-emerald-500: var(--emerald-500);
+  --color-emerald-600: var(--emerald-600);
+  --color-emerald-700: var(--emerald-700);
 
-  --color-rose-50: #fff1f2;
-  --color-rose-100: #ffe4e6;
-  --color-rose-200: #fecdd3;
-  --color-rose-500: #f43f5e;
-  --color-rose-600: #e11d48;
-  --color-rose-700: #be123c;
+  --color-amber-50:  var(--amber-50);
+  --color-amber-100: var(--amber-100);
+  --color-amber-200: var(--amber-200);
+  --color-amber-500: var(--amber-500);
+  --color-amber-600: var(--amber-600);
+  --color-amber-700: var(--amber-700);
 
-  --color-violet-50: #f5f3ff;
-  --color-violet-100: #ede9fe;
-  --color-violet-200: #ddd6fe;
-  --color-violet-500: #8b5cf6;
-  --color-violet-600: #7c3aed;
-  --color-violet-700: #6d28d9;
+  --color-rose-50:  var(--rose-50);
+  --color-rose-100: var(--rose-100);
+  --color-rose-200: var(--rose-200);
+  --color-rose-500: var(--rose-500);
+  --color-rose-600: var(--rose-600);
+  --color-rose-700: var(--rose-700);
 
-  --color-sky-50: #f0f9ff;
-  --color-sky-100: #e0f2fe;
-  --color-sky-200: #bae6fd;
-  --color-sky-500: #0ea5e9;
-  --color-sky-700: #0369a1;
-
-  --color-slate-50: #f8fafc;
-  --color-slate-100: #f1f5f9;
-  --color-slate-200: #e2e8f0;
-  --color-slate-300: #cbd5e1;
-  --color-slate-400: #94a3b8;
-  --color-slate-500: #64748b;
-  --color-slate-600: #475569;
-  --color-slate-700: #334155;
-  --color-slate-800: #1e293b;
-  --color-slate-900: #111827;
-  --color-slate-950: #0a0e17;
+  --color-sky-50:  var(--sky-50);
+  --color-sky-100: var(--sky-100);
+  --color-sky-200: var(--sky-200);
+  --color-sky-500: var(--sky-500);
+  --color-sky-600: var(--sky-600);
+  --color-sky-700: var(--sky-700);
 }
 
 @layer base {
-  * {
+  *, *::before, *::after {
     box-sizing: border-box;
     margin: 0;
     padding: 0;
   }
+
   html {
     font-family: var(--font-body);
+    font-size: var(--text-base);
+    line-height: var(--leading-normal);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
     scroll-behavior: smooth;
   }
+
   body {
-    background: #f5f7fa;
-    color: #1e293b;
+    background: var(--stone-50);
+    color: var(--stone-900);
     min-height: 100vh;
-    transition: background-color 0.2s ease, color 0.2s ease;
   }
-  .dark body,
-  .dark {
-    background: #0f1219;
-    color: #e2e8f0;
+
+  /* Tabular nums for all numeric displays */
+  .tabular-nums { font-variant-numeric: tabular-nums; }
+
+  /* Selection */
+  ::selection {
+    background: var(--gold-200);
+    color: var(--stone-900);
   }
-  h1, h2, h3 { font-family: var(--font-display); font-weight: 600; }
+
+  /* Focus ring — consistent across all interactive elements */
+  :focus-visible {
+    outline: 2px solid var(--gold-500);
+    outline-offset: 2px;
+  }
+
+  /* Scrollbar — subtle */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--stone-300); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--stone-400); }
 }
 
 @layer utilities {
+  /* ── Animations ── */
   @keyframes shimmer {
     0% { background-position: -200% 0; }
     100% { background-position: 200% 0; }
   }
-  .animate-shimmer {
-    background: linear-gradient(90deg, transparent 25%, rgba(148,163,184,0.1) 50%, transparent 75%);
-    background-size: 200% 100%;
-    animation: shimmer 1.5s infinite;
-  }
-
-  @keyframes toast-in {
-    from { transform: translateY(-100%); opacity: 0; }
-    to { transform: translateY(0); opacity: 1; }
-  }
-  .animate-toast-in {
-    animation: toast-in 0.3s ease-out;
-  }
 
   @keyframes fade-in {
-    from { opacity: 0; transform: translateY(8px); }
+    from { opacity: 0; transform: translateY(4px); }
     to { opacity: 1; transform: translateY(0); }
   }
-  .animate-fade-in {
-    animation: fade-in 0.3s ease-out;
+
+  @keyframes slide-in-right {
+    from { opacity: 0; transform: translateX(8px); }
+    to { opacity: 1; transform: translateX(0); }
   }
 
-  .animate-backdrop-in {
-    animation: backdrop-in 0.2s ease-out;
+  @keyframes scale-in {
+    from { opacity: 0; transform: scale(0.96); }
+    to { opacity: 1; transform: scale(1); }
   }
 
   @keyframes backdrop-in {
@@ -126,19 +128,25 @@
     to { opacity: 1; }
   }
 
-  @keyframes slide-in-right {
-    from { opacity: 0; transform: translateX(16px); }
-    to { opacity: 1; transform: translateX(0); }
-  }
-  .animate-slide-in {
-    animation: slide-in-right 0.2s ease-out;
+  @keyframes toast-in {
+    from { transform: translateY(-8px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
   }
 
-  @keyframes scale-in {
-    from { opacity: 0; transform: scale(0.95); }
-    to { opacity: 1; transform: scale(1); }
+  @keyframes spin {
+    to { transform: rotate(360deg); }
   }
-  .animate-scale-in {
-    animation: scale-in 0.2s ease-out;
+
+  .animate-shimmer {
+    background: linear-gradient(90deg, var(--stone-200) 25%, var(--stone-100) 50%, var(--stone-200) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s ease-in-out infinite;
   }
+
+  .animate-fade-in { animation: fade-in 0.3s ease-out; }
+  .animate-slide-in { animation: slide-in-right 0.2s ease-out; }
+  .animate-scale-in { animation: scale-in 0.2s ease-out; }
+  .animate-backdrop-in { animation: backdrop-in 0.15s ease-out; }
+  .animate-toast-in { animation: toast-in 0.25s ease-out; }
+  .animate-spin { animation: spin 0.6s linear infinite; }
 }

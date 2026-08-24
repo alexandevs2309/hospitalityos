@@ -2,11 +2,28 @@
 
 import { useState, useEffect } from "react";
 import { runNightAudit, getNightAuditHistory } from "@/lib/api";
+import {
+  Button,
+  Card,
+  CardContent,
+  CardHeader,
+  EmptyState,
+  ErrorState,
+  Input,
+  Modal,
+  SkeletonCard,
+  SkeletonTable,
+  StatusBadge,
+  useToast,
+} from "@/components/ui";
+import { Moon, Calendar, DollarSign, CheckCircle, AlertCircle, Loader2, Play, X, Trash2, RefreshCw } from "lucide-react";
+
+const TENANT = "eden-hotel";
 
 const statusConfig = {
-  completed: { label: "Completada", color: "text-emerald-700 bg-emerald-50" },
-  running: { label: "En Proceso", color: "text-amber-700 bg-amber-50" },
-  failed: { label: "Fallida", color: "text-rose-700 bg-rose-50" },
+  completed: { label: "Completada", tone: "success" },
+  running: { label: "En Proceso", tone: "warning" },
+  failed: { label: "Fallida", tone: "danger" },
 };
 
 function todayStr() {
@@ -14,7 +31,7 @@ function todayStr() {
 }
 
 function formatMoney(cents) {
-  return `$${(cents / 100).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  return `$${((cents || 0) / 100).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 function formatDate(iso) {
@@ -31,7 +48,34 @@ function formatDateTime(iso) {
   return d.toLocaleString(undefined, { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
 }
 
+const thStyle = {
+  textAlign: "left",
+  padding: "10px 20px",
+  fontSize: "var(--text-xs)",
+  fontWeight: 600,
+  color: "var(--stone-500)",
+  textTransform: "uppercase",
+  letterSpacing: "0.05em",
+};
+
+const tdBase = { padding: "14px 20px", fontSize: "var(--text-sm)" };
+
+const rowHover = {
+  onMouseEnter: (e) => { e.currentTarget.style.background = "var(--stone-50)"; },
+  onMouseLeave: (e) => { e.currentTarget.style.background = "transparent"; },
+};
+
+function BannerStat({ label, value }) {
+  return (
+    <div style={{ background: "var(--stone-800)", borderRadius: "var(--radius)", padding: "14px 16px" }}>
+      <p className="text-xs text-stone-400 uppercase tracking-wider">{label}</p>
+      <p className="mt-1 text-xl font-bold text-stone-50">{value}</p>
+    </div>
+  );
+}
+
 export default function NightAuditPage() {
+  const toast = useToast();
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(null);
@@ -40,13 +84,12 @@ export default function NightAuditPage() {
   const [confirming, setConfirming] = useState(false);
   const [running, setRunning] = useState(false);
   const [result, setResult] = useState(null);
-  const [message, setMessage] = useState(null);
 
   async function load() {
     setLoading(true);
     setLoadError(null);
     try {
-      setHistory(await getNightAuditHistory("eden-hotel"));
+      setHistory(await getNightAuditHistory(TENANT));
     } catch (err) {
       setLoadError(err.message);
     } finally {
@@ -58,18 +101,17 @@ export default function NightAuditPage() {
 
   async function handleRun() {
     setRunning(true);
-    setMessage(null);
     try {
-      const data = await runNightAudit("eden-hotel", runDate);
+      const data = await runNightAudit(TENANT, runDate);
       setResult(data);
-      setMessage({ type: "success", text: `Cierre completado para ${data.run_date}` });
       setConfirming(false);
-      load();
+      toast(`Cierre completado para ${data.run_date}`, "success");
+      await load();
     } catch (err) {
       if (err.message && err.message.includes("already run")) {
-        setMessage({ type: "error", text: `Ya se ejecuto la auditoria nocturna para ${runDate}. Selecciona otra fecha.` });
+        toast(`Ya se ejecutó la auditoría para ${runDate}. Selecciona otra fecha.`, "error");
       } else {
-        setMessage({ type: "error", text: err.message });
+        toast(err.message || "Error al ejecutar la auditoría", "error");
       }
     } finally {
       setRunning(false);
@@ -77,161 +119,157 @@ export default function NightAuditPage() {
   }
 
   const lastRun = history[0];
-  const sc = lastRun ? (statusConfig[lastRun.status] || statusConfig.running) : null;
+  const lastStatus = lastRun ? (statusConfig[lastRun.status] || statusConfig.running) : null;
 
   return (
-    <div>
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-slate-900" style={{ fontFamily: "var(--font-display)" }}>Auditoria Nocturna</h1>
-        <p className="text-slate-500 mt-1">Cierre de dia y publicacion de cargos nocturnos</p>
+    <div className="animate-fade-in">
+      <div className="mb-6">
+        <h1 className="text-2xl font-semibold text-stone-900">Auditoría Nocturna</h1>
+        <p className="mt-1 text-sm text-stone-400">Cierre de día y publicación de cargos nocturnos</p>
       </div>
 
-      {loadError && (
-        <div className="mb-6 bg-rose-50 border border-rose-200 text-rose-700 px-4 py-3 rounded-lg text-sm flex items-center justify-between">
-          <span>{loadError}</span>
-          <button onClick={load} className="px-3 py-1.5 bg-white border border-rose-200 rounded-md text-xs font-medium hover:bg-rose-100">Reintentar</button>
-        </div>
-      )}
-
-      {loading ? (
-        <div className="bg-white rounded-xl border border-slate-200 p-6 mb-6">
-          <div className="animate-pulse space-y-4">
-            <div className="h-4 bg-slate-200 rounded w-1/4"></div>
-            <div className="h-10 bg-slate-100 rounded"></div>
-            <div className="h-10 bg-slate-100 rounded"></div>
-          </div>
+      {loadError && !loading ? (
+        <Card className="mb-6">
+          <ErrorState message={loadError} onRetry={load} />
+        </Card>
+      ) : loading ? (
+        <div className="mb-6 grid grid-cols-1 gap-5 lg:grid-cols-3">
+          <div className="lg:col-span-2"><SkeletonCard /></div>
+          <SkeletonCard />
         </div>
       ) : (
         lastRun && (
-          <div className="bg-brand-600 rounded-xl p-6 mb-6 text-white">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h2 className="text-lg font-semibold" style={{ fontFamily: "var(--font-display)" }}>Ultimo Cierre</h2>
-                <p className="text-brand-100 text-sm mt-0.5">Dia operativo del {formatDate(lastRun.run_date)}</p>
+          <Card className="mb-6" style={{ background: "var(--stone-900)", borderColor: "var(--stone-900)" }}>
+            <CardContent>
+              <div className="mb-5 flex items-center justify-between gap-4">
+                <div>
+                  <h2 className="text-lg font-semibold text-stone-50">Último Cierre</h2>
+                  <p className="mt-0.5 text-sm text-stone-400">Día operativo del {formatDate(lastRun.run_date)}</p>
+                </div>
+                <StatusBadge tone={lastStatus.tone} dot>{lastStatus.label}</StatusBadge>
               </div>
-              <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${sc.color}`}>{sc.label}</span>
-            </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="bg-white/10 rounded-lg p-4">
-                <p className="text-xs text-brand-100 uppercase tracking-wider">Reservas Procesadas</p>
-                <p className="text-2xl font-bold mt-1">{lastRun.reservations_processed}</p>
+              <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+                <BannerStat label="Reservas Procesadas" value={lastRun.reservations_processed ?? 0} />
+                <BannerStat label="Cargos Publicados" value={formatMoney(lastRun.charges_posted)} />
+                <BannerStat label="Ingresos Totales" value={formatMoney(lastRun.total_revenue)} />
+                <BannerStat label="Completado" value={formatDateTime(lastRun.completed_at)} />
               </div>
-              <div className="bg-white/10 rounded-lg p-4">
-                <p className="text-xs text-brand-100 uppercase tracking-wider">Cargos Publicados</p>
-                <p className="text-2xl font-bold mt-1">{formatMoney(lastRun.charges_posted)}</p>
-              </div>
-              <div className="bg-white/10 rounded-lg p-4">
-                <p className="text-xs text-brand-100 uppercase tracking-wider">Ingresos Totales</p>
-                <p className="text-2xl font-bold mt-1">{formatMoney(lastRun.total_revenue)}</p>
-              </div>
-              <div className="bg-white/10 rounded-lg p-4">
-                <p className="text-xs text-brand-100 uppercase tracking-wider">Completado</p>
-                <p className="text-sm font-medium mt-2">{formatDateTime(lastRun.completed_at)}</p>
-              </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         )
       )}
 
-      <div className="bg-white rounded-xl border border-slate-200 p-6 mb-6">
-        <h2 className="text-lg font-semibold text-slate-900 mb-4" style={{ fontFamily: "var(--font-display)" }}>Ejecutar Cierre de Dia</h2>
-        {!confirming ? (
-          <div className="flex items-end gap-4 flex-wrap">
+      <Card className="mb-6">
+        <CardHeader title="Ejecutar Cierre de Día" />
+        <CardContent>
+          <div className="flex flex-wrap items-end gap-4">
             <div>
-              <label className="block text-xs font-medium text-slate-500 mb-1.5">Fecha del cierre</label>
-              <input type="date" value={runDate} onChange={e => setRunDate(e.target.value)} max={todayStr()} className="px-3 py-2.5 rounded-lg border border-slate-200 text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none" />
-            </div>
-            <button onClick={() => { setMessage(null); setConfirming(true); }} disabled={running} className="px-5 py-2.5 bg-brand-600 text-white rounded-lg text-sm font-medium hover:bg-brand-700 transition-colors disabled:opacity-50">
-              Ejecutar Auditoria Nocturna
-            </button>
-          </div>
-        ) : (
-          <div className="border border-amber-200 bg-amber-50 rounded-lg p-4">
-            <p className="text-sm text-amber-800 mb-1 font-medium">Confirmar cierre del {formatDate(runDate)}</p>
-            <p className="text-sm text-amber-700 mb-4">Se publicara el cargo nocturno en el folio de cada reserva in-house y se cerrara el dia operativo. Esta accion no se puede deshacer.</p>
-            <div className="flex gap-2">
-              <button onClick={handleRun} disabled={running} className="px-5 py-2 bg-brand-600 text-white rounded-lg text-sm font-medium hover:bg-brand-700 transition-colors disabled:opacity-50">
-                {running ? "Ejecutando..." : "Confirmar Ejecucion"}
-              </button>
-              <button onClick={() => setConfirming(false)} disabled={running} className="px-5 py-2 bg-white border border-slate-200 text-slate-600 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors disabled:opacity-50">
-                Cancelar
-              </button>
-            </div>
-          </div>
-        )}
-
-        {message && (
-          <div className={`mt-4 px-4 py-3 rounded-lg text-sm font-medium ${message.type === "error" ? "bg-rose-50 text-rose-700 border border-rose-200" : "bg-emerald-50 text-emerald-700 border border-emerald-200"}`}>
-            {message.text}
-          </div>
-        )}
-
-        {result && (
-          <div className="mt-4 border border-emerald-200 bg-emerald-50 rounded-lg p-4">
-            <p className="text-xs font-semibold text-emerald-800 uppercase tracking-wider mb-3">Resultado del Cierre</p>
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-              <div>
-                <p className="text-xs text-emerald-700">Run ID</p>
-                <p className="text-sm font-mono text-slate-900">{result.run_id.slice(0, 8)}...</p>
-              </div>
-              <div>
-                <p className="text-xs text-emerald-700">Reservas Procesadas</p>
-                <p className="text-sm font-semibold text-slate-900">{result.reservations_processed}</p>
-              </div>
-              <div>
-                <p className="text-xs text-emerald-700">Cargos Publicados</p>
-                <p className="text-sm font-semibold text-slate-900">{formatMoney(result.charges_posted)}</p>
-              </div>
-              <div>
-                <p className="text-xs text-emerald-700">Ingresos Totales</p>
-                <p className="text-sm font-semibold text-slate-900">{formatMoney(result.total_revenue)}</p>
-              </div>
-              <div>
-                <p className="text-xs text-emerald-700">Estado</p>
-                <span className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-medium ${(statusConfig[result.status] || statusConfig.running).color}`}>
-                  {(statusConfig[result.status] || statusConfig.running).label}
-                </span>
+              <label htmlFor="run-date" className="mb-1.5 block text-xs font-medium text-stone-600">
+                Fecha del cierre
+              </label>
+              <div className="relative">
+                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400" />
+                <Input id="run-date" type="date" size="md" value={runDate} max={todayStr()} onChange={(e) => setRunDate(e.target.value)} className="pl-10" />
               </div>
             </div>
+            <Button onClick={() => setConfirming(true)} disabled={running}>
+              <Play className="w-4 h-4 mr-1" /> Ejecutar Auditoría Nocturna
+            </Button>
           </div>
-        )}
-      </div>
 
-      <h2 className="text-lg font-semibold text-slate-900 mb-4" style={{ fontFamily: "var(--font-display)" }}>Historial de Cierres</h2>
-      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-        <table className="w-full">
-          <thead>
-            <tr className="border-b border-slate-200 bg-slate-50">
-              <th className="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Fecha</th>
-              <th className="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Reservas Procesadas</th>
-              <th className="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Cargos Publicados</th>
-              <th className="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Ingresos Totales</th>
-              <th className="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Estado</th>
-              <th className="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Completado</th>
-            </tr>
-          </thead>
-          <tbody>
-            {history.map(r => {
-              const s = statusConfig[r.status] || statusConfig.running;
-              return (
-                <tr key={r.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
-                  <td className="px-5 py-4 text-sm font-medium text-slate-900">{formatDate(r.run_date)}</td>
-                  <td className="px-5 py-4 text-sm text-slate-600">{r.reservations_processed}</td>
-                  <td className="px-5 py-4 text-sm text-slate-600">{formatMoney(r.charges_posted)}</td>
-                  <td className="px-5 py-4 text-sm font-medium text-slate-900">{formatMoney(r.total_revenue)}</td>
-                  <td className="px-5 py-4">
-                    <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${s.color}`}>{s.label}</span>
-                  </td>
-                  <td className="px-5 py-4 text-sm text-slate-600">{formatDateTime(r.completed_at)}</td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-        {history.length === 0 && !loading && (
-          <div className="p-16 text-center text-slate-400">No hay cierres registrados</div>
-        )}
-      </div>
+          {result && (
+            <div className="mt-6 border-t border-stone-100 pt-6">
+              <p className="mb-3 text-xs font-semibold text-stone-500 uppercase tracking-wider">
+                Resultado del Cierre
+              </p>
+              <div className="grid grid-cols-2 gap-4 md:grid-cols-5">
+                <div>
+                  <p className="text-xs text-stone-400">Run ID</p>
+                  <p className="mt-0.5 font-mono text-sm text-stone-900">{result.run_id?.slice(0, 8)}...</p>
+                </div>
+                <div>
+                  <p className="text-xs text-stone-400">Reservas Procesadas</p>
+                  <p className="mt-0.5 text-sm font-semibold text-stone-900">{result.reservations_processed ?? 0}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-stone-400">Cargos Publicados</p>
+                  <p className="mt-0.5 text-sm font-semibold text-stone-900">{formatMoney(result.charges_posted)}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-stone-400">Ingresos Totales</p>
+                  <p className="mt-0.5 text-sm font-semibold text-stone-900">{formatMoney(result.total_revenue)}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-stone-400">Estado</p>
+                  <div className="mt-1">
+                    <StatusBadge tone={(statusConfig[result.status] || statusConfig.running).tone}>
+                      {(statusConfig[result.status] || statusConfig.running).label}
+                    </StatusBadge>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <h2 className="mb-4 text-lg font-semibold text-stone-900">Historial de Cierres</h2>
+
+      {loadError && !loading ? null : loading ? (
+        <SkeletonTable rows={5} cols={6} />
+      ) : history.length === 0 ? (
+        <Card>
+          <EmptyState
+            icon={<Moon className="w-12 h-12 text-stone-300" />}
+            title="No hay cierres registrados"
+            description="Ejecuta la auditoría nocturna para generar el primer cierre de día."
+          />
+        </Card>
+      ) : (
+        <Card style={{ overflow: "hidden" }}>
+          <table className="w-full">
+            <thead>
+              <tr style={{ background: "var(--stone-50)", borderBottom: "1px solid var(--stone-200)" }}>
+                <th style={thStyle}>Fecha</th>
+                <th style={thStyle}>Reservas Procesadas</th>
+                <th style={thStyle}>Cargos Publicados</th>
+                <th style={thStyle}>Ingresos Totales</th>
+                <th style={thStyle}>Estado</th>
+                <th style={thStyle}>Completado</th>
+              </tr>
+            </thead>
+            <tbody>
+              {history.map((r) => {
+                const s = statusConfig[r.status] || statusConfig.running;
+                return (
+                  <tr key={r.id} style={{ borderBottom: "1px solid var(--stone-100)" }} {...rowHover}>
+                    <td style={{ ...tdBase, fontWeight: 500, color: "var(--stone-900)" }}>{formatDate(r.run_date)}</td>
+                    <td style={{ ...tdBase, color: "var(--stone-600)" }}>{r.reservations_processed ?? 0}</td>
+                    <td style={{ ...tdBase, color: "var(--stone-600)" }}>{formatMoney(r.charges_posted)}</td>
+                    <td style={{ ...tdBase, fontWeight: 600, color: "var(--stone-900)" }}>{formatMoney(r.total_revenue)}</td>
+                    <td style={tdBase}><StatusBadge tone={s.tone}>{s.label}</StatusBadge></td>
+                    <td style={{ ...tdBase, color: "var(--stone-600)" }}>{formatDateTime(r.completed_at)}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </Card>
+      )}
+
+      <Modal open={confirming} onClose={() => !running && setConfirming(false)} title="Confirmar Cierre de Día">
+        <p className="text-sm text-stone-600 leading-relaxed">
+          Se publicará el cargo nocturno en el folio de cada reserva in-house y se cerrará el día operativo del{" "}
+          <span className="font-semibold text-stone-900">{formatDate(runDate)}</span>.
+        </p>
+        <p className="mt-2 text-xs text-stone-400">Esta acción no se puede deshacer.</p>
+        <div className="mt-6 flex justify-end gap-2">
+          <Button variant="outline" onClick={() => setConfirming(false)} disabled={running}>Cancelar</Button>
+          <Button onClick={handleRun} loading={running}>
+            {running ? "Ejecutando..." : "Confirmar Ejecución"}
+          </Button>
+        </div>
+      </Modal>
     </div>
   );
 }

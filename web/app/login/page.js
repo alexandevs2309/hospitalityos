@@ -26,33 +26,52 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-950 p-4">
+    <div
+      className="flex min-h-screen items-center justify-center p-4"
+      style={{ background: "var(--stone-50)" }}
+    >
       <div className="w-full max-w-md animate-fade-in">
-        <div className="text-center mb-8">
-          <h1
-            className="text-3xl font-bold tracking-tight text-white"
-            style={{ fontFamily: "var(--font-display)" }}
+        <div className="mb-8 text-center">
+          <div
+            className="mx-auto mb-5 flex items-center justify-center"
+            style={{ width: "48px", height: "48px", borderRadius: "var(--radius-lg)", background: "var(--stone-900)" }}
           >
-            Hospitality OS
+            <svg width="22" height="22" fill="none" stroke="var(--gold-500)" strokeWidth="1.8" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l9-8 9 8M5 10v10a1 1 0 001 1h4m4-11v11a1 1 0 001 1h4a1 1 0 001-1V10" />
+            </svg>
+          </div>
+          <h1 style={{ fontSize: "var(--text-2xl)", fontWeight: 700, color: "var(--stone-900)", letterSpacing: "-0.01em" }}>
+            Auron Hospitality
           </h1>
-          <p className="text-sm text-slate-400 mt-2">Sistema de Gestion Hotelera</p>
+          <p className="mt-2" style={{ fontSize: "var(--text-sm)", color: "var(--stone-400)" }}>
+            Sistema de Gestion Hotelera
+          </p>
         </div>
-        <Card className="animate-scale-in shadow-lg border-0 dark:border-slate-800">
-          <CardContent className="p-8">
+
+        <Card className="animate-scale-in">
+          <CardContent style={{ padding: "32px" }}>
             {error && (
               <div
                 role="alert"
-                className="flex items-start gap-2.5 bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/20 text-rose-700 dark:text-rose-300 px-4 py-3 rounded-lg text-sm mb-6"
+                className="mb-6 flex items-start gap-2.5 px-4 py-3"
+                style={{
+                  borderRadius: "var(--radius)",
+                  background: "var(--rose-50)",
+                  border: "1px solid var(--rose-200)",
+                  color: "var(--rose-700)",
+                  fontSize: "var(--text-sm)",
+                }}
               >
-                <svg className="w-4 h-4 shrink-0 mt-0.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <svg className="mt-0.5 h-4 w-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
                 <span>{error}</span>
               </div>
             )}
+
             <form onSubmit={handleSubmit} className="space-y-5">
               <div>
-                <label htmlFor="email" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+                <label htmlFor="email" className="mb-1.5 block" style={{ fontSize: "var(--text-xs)", fontWeight: 500, color: "var(--stone-700)" }}>
                   Email
                 </label>
                 <Input
@@ -65,9 +84,10 @@ export default function LoginPage() {
                   placeholder="admin@edenhotel.com"
                 />
               </div>
+
               <div>
-                <label htmlFor="password" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
-                  Password
+                <label htmlFor="password" className="mb-1.5 block" style={{ fontSize: "var(--text-xs)", fontWeight: 500, color: "var(--stone-700)" }}>
+                  Contraseña
                 </label>
                 <Input
                   id="password"
@@ -76,11 +96,12 @@ export default function LoginPage() {
                   autoComplete="current-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="********"
+                  placeholder="••••••••"
                 />
               </div>
+
               <div>
-                <label htmlFor="tenant" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+                <label htmlFor="tenant" className="mb-1.5 block" style={{ fontSize: "var(--text-xs)", fontWeight: 500, color: "var(--stone-700)" }}>
                   Tenant ID
                 </label>
                 <Input
@@ -91,12 +112,17 @@ export default function LoginPage() {
                   onChange={(e) => setTenantId(e.target.value)}
                 />
               </div>
+
               <Button type="submit" size="lg" loading={isLoading} className="w-full">
                 {isLoading ? "Autenticando..." : "Iniciar Sesion"}
               </Button>
             </form>
           </CardContent>
         </Card>
+
+        <p className="mt-6 text-center" style={{ fontSize: "var(--text-xs)", color: "var(--stone-400)" }}>
+          Acceso restringido al personal autorizado
+        </p>
       </div>
     </div>
   );

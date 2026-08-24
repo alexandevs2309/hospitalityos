@@ -7,93 +7,225 @@ import { usePathname } from "next/navigation";
 import { ThemeProvider, useTheme } from "@/lib/theme";
 import { ToastProvider } from "@/components/ui";
 import { getStoredUser, clearAuth } from "@/lib/auth";
+import {
+  LayoutDashboard,
+  Hotel,
+  Home,
+  Calendar,
+  CalendarCheck,
+  Users,
+  Sparkles,
+  Wrench,
+  Building2,
+  BarChart3,
+  Moon,
+  FileText,
+  Settings,
+  Menu,
+  LogOut,
+  Sun,
+  Plus,
+  Search,
+  ChevronDown,
+  Eye,
+  Edit,
+  Trash2,
+  X,
+  Loader2,
+  Building,
+} from "lucide-react";
 
-const nav = [
-  { href: "/", label: "Dashboard", icon: "M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" },
-  { href: "/frontdesk", label: "Front Desk", icon: "M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" },
-  { href: "/rooms", label: "Habitaciones", icon: "M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" },
-  { href: "/reservations", label: "Reservas", icon: "M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" },
-  { href: "/availability", label: "Disponibilidad", icon: "M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" },
-  { href: "/guests", label: "Huespedes", icon: "M12 4.354a4 4 0 110 7.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" },
-  { href: "/housekeeping", label: "Housekeeping", icon: "M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" },
-  { href: "/maintenance", label: "Mantenimiento", icon: "M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" },
-  { href: "/staff", label: "Personal", icon: "M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" },
-  { href: "/reports", label: "Reportes", icon: "M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" },
-  { href: "/night-audit", label: "Auditoria", icon: "M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" },
-  { href: "/fiscal", label: "Fiscal (e-CF)", icon: "M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z" },
-  { href: "/settings", label: "Configuracion", icon: "M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" },
+const navGroups = [
+  {
+    label: "Operaciones",
+    items: [
+      { href: "/", label: "Dashboard", icon: LayoutDashboard },
+      { href: "/frontdesk", label: "Front Desk", icon: Hotel },
+      { href: "/rooms", label: "Habitaciones", icon: Home },
+      { href: "/reservations", label: "Reservas", icon: Calendar },
+      { href: "/availability", label: "Disponibilidad", icon: CalendarCheck },
+      { href: "/guests", label: "Huespedes", icon: Users },
+    ],
+  },
+  {
+    label: "Equipo",
+    items: [
+      { href: "/housekeeping", label: "Housekeeping", icon: Sparkles },
+      { href: "/maintenance", label: "Mantenimiento", icon: Wrench },
+      { href: "/staff", label: "Personal", icon: Users },
+    ],
+  },
+  {
+    label: "Finanzas",
+    items: [
+      { href: "/reports", label: "Reportes", icon: BarChart3 },
+      { href: "/night-audit", label: "Auditoria", icon: Moon },
+      { href: "/fiscal", label: "Fiscal (e-CF)", icon: FileText },
+    ],
+  },
+  {
+    label: "",
+    items: [
+      { href: "/settings", label: "Configuracion", icon: Settings },
+    ],
+  },
 ];
 
-function SidebarContent({ onLinkClick }) {
+const pageTitles = {
+  "/": "Dashboard",
+  "/frontdesk": "Front Desk",
+  "/rooms": "Habitaciones",
+  "/reservations": "Reservas",
+  "/availability": "Disponibilidad",
+  "/guests": "Huespedes",
+  "/housekeeping": "Housekeeping",
+  "/maintenance": "Mantenimiento",
+  "/staff": "Personal",
+  "/reports": "Reportes",
+  "/night-audit": "Auditoria",
+  "/fiscal": "Fiscal (e-CF)",
+  "/settings": "Configuracion",
+};
+
+function BuildingIcon() {
+  return <Building className="w-6 h-6" strokeWidth={1.5} />;
+}
+
+function Sidebar({ onLinkClick }) {
   const pathname = usePathname();
-  const { dark, toggle } = useTheme();
   const [user, setUser] = useState(null);
+  const { dark, toggle } = useTheme();
 
-  useEffect(() => {
-    setUser(getStoredUser());
-  }, []);
-
-  function handleLogout() {
-    clearAuth();
-    window.location.href = "/login";
-  }
+  useEffect(() => { setUser(getStoredUser()); }, []);
 
   return (
-    <>
-      <div className="px-6 py-6 border-b border-slate-800">
-        <h1 className="text-xl font-bold tracking-tight text-white" style={{ fontFamily: "var(--font-display)" }}>
-          Hospitality OS
-        </h1>
-        <p className="text-xs text-slate-400 mt-1">{user?.tenant_id || "eden-hotel"}</p>
+    <aside
+      className="fixed left-0 top-0 bottom-0 z-[var(--z-sidebar)] flex flex-col border-r transition-colors duration-200"
+      style={{
+        width: "var(--sidebar-width)",
+        background: "var(--stone-100)",
+        borderColor: "var(--stone-200)",
+      }}
+    >
+      {/* Logo */}
+      <div className="flex items-center gap-3 px-5 py-5 border-b" style={{ borderColor: "var(--stone-200)" }}>
+        <div
+          className="flex items-center justify-center w-8 h-8 rounded-lg"
+          style={{ background: "var(--stone-900)", color: "var(--stone-50)" }}
+        >
+          <BuildingIcon />
+        </div>
+        <div className="min-w-0">
+          <p className="text-sm font-semibold truncate" style={{ color: "var(--stone-900)" }}>Auron Hospitality</p>
+          <p className="text-xs truncate" style={{ color: "var(--stone-400)" }}>{user?.tenant_id || "eden-hotel"}</p>
+        </div>
       </div>
-      <nav className="flex-1 py-4 overflow-y-auto">
-        {nav.map((item) => {
-          const isActive = pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href));
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              onClick={onLinkClick}
-              className={`flex items-center gap-3 px-6 py-2.5 text-sm transition-colors ${
-                isActive
-                  ? "bg-white/10 text-white border-r-2 border-brand-500"
-                  : "text-slate-400 hover:bg-white/5 hover:text-white"
-              }`}
-            >
-              <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d={item.icon} />
-              </svg>
-              {item.label}
-            </Link>
-          );
-        })}
+
+      {/* Navigation */}
+      <nav className="flex-1 overflow-y-auto py-3 px-3">
+        {navGroups.map((group, gi) => (
+          <div key={gi} className={gi > 0 ? "mt-4" : ""}>
+            {group.label && (
+              <p
+                className="px-3 mb-1.5 text-xs font-medium uppercase tracking-wider"
+                style={{ color: "var(--stone-400)", fontSize: "var(--text-xs)" }}
+              >
+                {group.label}
+              </p>
+            )}
+            <div className="space-y-0.5">
+              {group.items.map((item) => {
+                const isActive = pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href));
+                const Icon = item.icon;
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={onLinkClick}
+                    className="flex items-center gap-2.5 rounded-md transition-all duration-150"
+                    style={{
+                      padding: "8px 12px",
+                      fontSize: "var(--text-sm)",
+                      fontWeight: isActive ? 500 : 400,
+                      color: isActive ? "var(--stone-900)" : "var(--stone-500)",
+                      background: isActive ? "white" : "transparent",
+                      boxShadow: isActive ? "var(--shadow-sm)" : "none",
+                    }}
+                    onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = "var(--stone-200)"; }}
+                    onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = "transparent"; }}
+                  >
+                    <Icon className="w-4 h-4 shrink-0" strokeWidth={1.5} />
+                    {item.label}
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        ))}
       </nav>
-      <div className="px-6 py-4 border-t border-slate-800">
-        <div className="flex items-center gap-3 mb-3">
-          <div className="w-8 h-8 rounded-full bg-brand-600 flex items-center justify-center text-xs font-bold text-white">
+
+      {/* User footer */}
+      <div className="px-3 py-3 border-t" style={{ borderColor: "var(--stone-200)" }}>
+        <div className="flex items-center gap-2.5 px-2">
+          <div
+            className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold shrink-0"
+            style={{ background: "var(--gold-100)", color: "var(--gold-700)" }}
+          >
             {user?.full_name?.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase() || "AH"}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-white truncate">{user?.full_name || "Admin"}</p>
-            <p className="text-xs text-slate-400 truncate">{user?.role || "admin"}</p>
+            <p className="text-xs font-medium truncate" style={{ color: "var(--stone-900)" }}>{user?.full_name || "Admin"}</p>
+            <p className="text-xs truncate" style={{ color: "var(--stone-400)" }}>{user?.role || "admin"}</p>
           </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <button onClick={toggle} className="flex-1 flex items-center justify-center gap-2 px-3 py-1.5 rounded-lg text-xs text-slate-400 hover:bg-white/5 hover:text-white transition-colors">
-            {dark ? (
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
-            ) : (
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>
-            )}
-            {dark ? "Claro" : "Oscuro"}
+          <button
+            onClick={toggle}
+            className="p-1.5 rounded-lg transition-colors"
+            style={{ color: "var(--stone-400)" }}
+            onMouseEnter={(e) => { e.currentTarget.style.color = "var(--gold-500)"; e.currentTarget.style.background = "var(--gold-50)"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.color = "var(--stone-400)"; e.currentTarget.style.background = "transparent"; }}
+            title={dark ? "Modo claro" : "Modo oscuro"}
+            aria-label={dark ? "Switch to light mode" : "Switch to dark mode"}
+          >
+            {dark ? <Sun className="w-5 h-5" strokeWidth={2} /> : <Moon className="w-5 h-5" strokeWidth={2} />}
           </button>
-          <button onClick={handleLogout} className="flex-1 flex items-center justify-center gap-2 px-3 py-1.5 rounded-lg text-xs text-slate-400 hover:bg-white/5 hover:text-rose-400 transition-colors">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
-            Salir
+          <button
+            onClick={() => { clearAuth(); window.location.href = "/login"; }}
+            className="p-1 rounded transition-colors"
+            style={{ color: "var(--stone-400)" }}
+            onMouseEnter={(e) => { e.currentTarget.style.color = "var(--rose-500)"; e.currentTarget.style.background = "var(--rose-50)"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.color = "var(--stone-400)"; e.currentTarget.style.background = "transparent"; }}
+            title="Cerrar sesion"
+          >
+            <LogOut className="w-4 h-4" strokeWidth={2} />
           </button>
         </div>
       </div>
-    </>
+    </aside>
+  );
+}
+
+function Topbar({ title }) {
+  return (
+    <header
+      className="fixed top-0 right-0 z-[var(--z-topbar)] flex items-center border-b transition-colors duration-200"
+      style={{
+        left: "var(--sidebar-width)",
+        height: "var(--topbar-height)",
+        background: "white",
+        borderColor: "var(--stone-200)",
+        boxShadow: "var(--shadow-xs)",
+        padding: "0 var(--content-padding)",
+      }}
+    >
+      <h1 className="text-base font-semibold" style={{ color: "var(--stone-900)", fontWeight: 600 }}>{title}</h1>
+      <div className="flex-1" />
+      <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 px-2 py-1 rounded-full" style={{ background: "var(--emerald-50)" }}>
+          <span className="w-1.5 h-1.5 rounded-full" style={{ background: "var(--emerald-500)" }} />
+          <span className="text-xs font-medium" style={{ color: "var(--emerald-700)", fontSize: "var(--text-xs)" }}>Online</span>
+        </div>
+      </div>
+    </header>
   );
 }
 
@@ -102,39 +234,59 @@ function AppLayout({ children }) {
   const pathname = usePathname();
   const isAuth = pathname === "/login";
 
-  if (isAuth) {
-    return <>{children}</>;
-  }
+  if (isAuth) return <>{children}</>;
+
+  const title = pageTitles[pathname] || "Hospitality OS";
 
   return (
-    <div className="flex min-h-screen bg-[#f5f7fa] dark:bg-[#0f1219] transition-colors duration-200">
+    <div className="min-h-screen" style={{ background: "var(--stone-50)" }}>
       {/* Mobile hamburger */}
       <button
         onClick={() => setSidebarOpen(true)}
-        className="lg:hidden fixed top-4 left-4 z-50 p-2 rounded-lg bg-slate-900 dark:bg-slate-950 text-white shadow-lg hover:bg-slate-800 dark:hover:bg-slate-900 transition-colors"
+        className="lg:hidden fixed top-3 left-3 z-50 p-2 rounded-lg transition-colors"
+        style={{ background: "var(--stone-900)", color: "var(--stone-50)" }}
+        aria-label="Abrir menu"
       >
-        <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
-        </svg>
+        <Menu className="w-5 h-5" strokeWidth={2} />
       </button>
 
       {/* Mobile backdrop */}
       {sidebarOpen && (
-        <div className="lg:hidden fixed inset-0 bg-black/50 z-30 animate-backdrop-in" onClick={() => setSidebarOpen(false)} />
+        <div
+          className="lg:hidden fixed inset-0 z-30 animate-backdrop-in"
+          style={{ background: "rgba(0,0,0,0.3)" }}
+          onClick={() => setSidebarOpen(false)}
+        />
       )}
 
       {/* Sidebar */}
-      <aside className={`
-        fixed h-screen z-40 flex flex-col bg-slate-900 dark:bg-slate-950 text-white w-64
-        transition-transform duration-200 ease-in-out
-        lg:translate-x-0
-        ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
-      `}>
-        <SidebarContent onLinkClick={() => setSidebarOpen(false)} />
-      </aside>
+      <div
+        className={`fixed h-screen z-40 transition-transform duration-200 ease-in-out lg:translate-x-0 ${
+          sidebarOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
+      >
+        <Sidebar onLinkClick={() => setSidebarOpen(false)} />
+      </div>
 
-      <main className="flex-1 lg:ml-64 p-6 lg:p-8 pt-16 lg:pt-8">
-        {children}
+      {/* Topbar */}
+      <div className="hidden lg:block">
+        <Topbar title={title} />
+      </div>
+
+      {/* Content */}
+      <main
+        className="transition-all duration-200"
+        style={{
+          marginLeft: "var(--sidebar-width)",
+          paddingTop: "calc(var(--topbar-height) + var(--content-padding))",
+          paddingLeft: "var(--content-padding)",
+          paddingRight: "var(--content-padding)",
+          paddingBottom: "var(--content-padding)",
+        }}
+      >
+        <div className="animate-fade-in">
+          {children}
+        </div>
       </main>
     </div>
   );

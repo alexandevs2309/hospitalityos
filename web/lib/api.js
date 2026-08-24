@@ -1,20 +1,55 @@
-import { getStoredToken } from "./auth";
+import { getStoredToken, getStoredRefreshToken, storeAuth, clearAuth } from "./auth";
 
 const API_BASE = "/api";
 
-async function request(path, options = {}) {
-  const token = getStoredToken();
-  const { tenantId, token: explicitToken, headers: extraHeaders, ...fetchOpts } = options;
-  const res = await fetch(`${API_BASE}${path}`, {
-    ...fetchOpts,
-    headers: {
-      "Content-Type": "application/json",
-      "X-Tenant-ID": tenantId || "eden-hotel",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...(explicitToken ? { Authorization: `Bearer ${explicitToken}` } : {}),
-      ...(extraHeaders || {}),
-    },
+async function refreshToken() {
+  const refreshToken = getStoredRefreshToken();
+  if (!refreshToken) throw new Error("No refresh token");
+  const res = await fetch(`${API_BASE}/auth/refresh`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ refresh_token: refreshToken }),
   });
+  if (!res.ok) {
+    clearAuth();
+    throw new Error("Token expired");
+  }
+const data = await res.json();
+    let user = {};
+    try { user = JSON.parse(localStorage.getItem("hos_user") || "{}"); } catch {}
+    storeAuth(data.access_token, data.refresh_token, user);
+    return data.access_token;
+}
+
+async function request(path, options = {}) {
+  const { tenantId, token: explicitToken, headers: extraHeaders, ...fetchOpts } = options;
+
+  async function doRequest(token) {
+    return fetch(`${API_BASE}${path}`, {
+      ...fetchOpts,
+      headers: {
+        "Content-Type": "application/json",
+        "X-Tenant-ID": tenantId || "eden-hotel",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...(explicitToken ? { Authorization: `Bearer ${explicitToken}` } : {}),
+        ...(extraHeaders || {}),
+      },
+    });
+  }
+
+  let token = getStoredToken();
+  let res = await doRequest(token);
+
+  if (res.status === 401 && !explicitToken) {
+    try {
+      token = await refreshToken();
+      res = await doRequest(token);
+    } catch {
+      if (typeof window !== "undefined") window.location.href = "/login";
+      throw new Error("Sesión expirada");
+    }
+  }
+
   if (!res.ok) {
     const error = await res.text();
     throw new Error(error || `HTTP ${res.status}`);

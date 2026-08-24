@@ -3,51 +3,71 @@
 import { useState, useEffect, useCallback } from "react";
 import { getReportDashboard, getReportOccupancy, getReportRevenue, getReportGuestStats } from "@/lib/api";
 import {
-  PageHeader,
-  FilterPills,
   Card,
-  CardHeader,
   CardContent,
-  Button,
-  LoadingState,
-  ErrorState,
+  CardHeader,
   EmptyState,
+  ErrorState,
+  FilterPills,
+  LoadingState,
   useToast,
 } from "@/components/ui";
+import {
+  BarChart,
+  Bar,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  AreaChart,
+  Area,
+  Cell,
+} from "recharts";
+import { TrendingUp, DollarSign, Users, Home, ArrowUp, ArrowDown, ExternalLink } from "lucide-react";
 
 const TENANT = "eden-hotel";
+
 const PERIODS = [
-  { days: 7, label: "7 días" },
-  { days: 30, label: "30 días" },
-  { days: 90, label: "90 días" },
+  { key: "7d", days: 7, label: "7 días" },
+  { key: "30d", days: 30, label: "30 días" },
+  { key: "90d", days: 90, label: "90 días" },
 ];
+
 const MONTHS = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+
+const rowHover = {
+  onMouseEnter: (e) => { e.currentTarget.style.background = "var(--stone-50)"; },
+  onMouseLeave: (e) => { e.currentTarget.style.background = "transparent"; },
+};
 
 function formatDate(iso) {
   if (!iso) return "-";
   const parts = iso.split("-");
-  const m = MONTHS[Number(parts[1]) - 1] || "";
-  return `${parts[2]} ${m}`;
+  return `${parts[2]} ${MONTHS[Number(parts[1]) - 1] || ""}`;
 }
 
 function money(cents) {
   return `$${((cents || 0) / 100).toLocaleString("en-US")}`;
 }
 
-function StatCard({ label, value, sub, color, icon }) {
+function StatCard({ label, value, sub, icon: Icon, colorClass }) {
   return (
-    <Card hover>
-      <CardContent className="pt-6">
-        <div className="flex items-start justify-between">
-          <div>
-            <p className="text-sm font-medium text-slate-500 dark:text-slate-400">{label}</p>
-            <p className="text-3xl font-bold mt-2 text-slate-900 dark:text-slate-100" style={{ fontFamily: "var(--font-display)" }}>{value}</p>
-            {sub && <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">{sub}</p>}
+    <Card className="hover:shadow-md">
+      <CardContent>
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-stone-500">{label}</p>
+            <p className="mt-2 truncate text-3xl font-bold text-stone-900" style={{ lineHeight: "var(--leading-tight)" }}>{value}</p>
+            {sub && <p className="mt-1 text-xs text-stone-400">{sub}</p>}
           </div>
-          <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0" style={{ background: `${color}15` }}>
-            <svg className="w-5 h-5" fill="none" stroke={color} strokeWidth="2" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d={icon} />
-            </svg>
+          <div
+            className="flex shrink-0 items-center justify-center"
+            style={{ width: "40px", height: "40px", borderRadius: "var(--radius-lg)", background: "var(--gold-50)", border: "1px solid var(--gold-100)" }}
+          >
+            {Icon && <Icon className="w-5 h-5" style={{ color: colorClass || "var(--gold-600)" }} strokeWidth={2} />}
           </div>
         </div>
       </CardContent>
@@ -55,9 +75,130 @@ function StatCard({ label, value, sub, color, icon }) {
   );
 }
 
+function OccupancyChart({ data }) {
+  if (!data || data.length === 0) return null;
+
+  const chartData = data.map((item) => ({
+    date: formatDate(item.date),
+    rate: Number(item.occupancy_rate || 0),
+    occupied: item.occupied_rooms || 0,
+    total: item.total_rooms || 0,
+  }));
+
+  return (
+    <div className="h-64">
+      <ResponsiveContainer width="100%" height="100%">
+        <AreaChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+          <defs>
+            <linearGradient id="occupancyGradient" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor="var(--gold-500)" stopOpacity={0.3} />
+              <stop offset="95%" stopColor="var(--gold-500)" stopOpacity={0} />
+            </linearGradient>
+          </defs>
+          <CartesianGrid strokeDasharray="3 3" stroke="var(--stone-200)" vertical={false} />
+          <XAxis
+            dataKey="date"
+            tick={{ fontSize: 11, fill: "var(--stone-400)" }}
+            axisLine={{ stroke: "var(--stone-200)" }}
+            tickLine={false}
+          />
+          <YAxis
+            tick={{ fontSize: 11, fill: "var(--stone-400)" }}
+            axisLine={false}
+            tickLine={false}
+            tickFormatter={(value) => `${value}%`}
+            domain={[0, "dataMax + 10"]}
+          />
+          <Tooltip
+            contentStyle={{
+              background: "var(--stone-900)",
+              border: "none",
+              borderRadius: "var(--radius)",
+              color: "var(--stone-50)",
+              fontSize: "var(--text-sm)",
+              boxShadow: "var(--shadow-lg)",
+            }}
+            formatter={(value) => [Number(value).toFixed(1) + "%", "Ocupación"]}
+            labelFormatter={(label) => label}
+          />
+          <Area
+            type="monotone"
+            dataKey="rate"
+            stroke="var(--gold-500)"
+            strokeWidth={2}
+            fillOpacity={1}
+            fill="url(#occupancyGradient)"
+            dot={false}
+            activeDot={{ r: 6, fill: "var(--gold-500)", strokeWidth: 2 }}
+          />
+        </AreaChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
+function RevenueChart({ data }) {
+  if (!data || data.length === 0) return null;
+
+  const chartData = data.map((item) => ({
+    date: formatDate(item.date),
+    revenue: Math.round((item.revenue_cents || 0) / 100),
+    reservations: item.reservations || 0,
+  }));
+
+  const maxRevenue = Math.max(...chartData.map((d) => d.revenue), 1);
+
+  return (
+    <div className="h-64">
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="var(--stone-200)" vertical={false} />
+          <XAxis
+            dataKey="date"
+            tick={{ fontSize: 11, fill: "var(--stone-400)" }}
+            axisLine={{ stroke: "var(--stone-200)" }}
+            tickLine={false}
+          />
+          <YAxis
+            tick={{ fontSize: 11, fill: "var(--stone-400)" }}
+            axisLine={false}
+            tickLine={false}
+            tickFormatter={(value) => `$${value.toLocaleString()}`}
+            domain={[0, maxRevenue * 1.2]}
+          />
+          <Tooltip
+            contentStyle={{
+              background: "var(--stone-900)",
+              border: "none",
+              borderRadius: "var(--radius)",
+              color: "var(--stone-50)",
+              fontSize: "var(--text-sm)",
+              boxShadow: "var(--shadow-lg)",
+            }}
+            formatter={(value, name) => [
+              name === "revenue" ? `$${Number(value).toLocaleString()}` : Number(value).toLocaleString(),
+              name === "revenue" ? "Ingresos" : "Reservas",
+            ]}
+            labelFormatter={(label) => label}
+          />
+          <Bar
+            dataKey="revenue"
+            radius={[4, 4, 0, 0]}
+            barSize={24}
+          >
+            {chartData.map((entry, index) => (
+              <Cell key={`cell-${index}`} fill="var(--gold-500)" />
+            ))}
+          </Bar>
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
 export default function ReportsPage() {
   const toast = useToast();
-  const [days, setDays] = useState(7);
+  const [periodKey, setPeriodKey] = useState("7d");
   const [dashboard, setDashboard] = useState(null);
   const [occupancy, setOccupancy] = useState(null);
   const [revenue, setRevenue] = useState(null);
@@ -65,14 +206,7 @@ export default function ReportsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const loadCharts = useCallback(async (d) => {
-    const [occ, rev] = await Promise.all([
-      getReportOccupancy(TENANT, d),
-      getReportRevenue(TENANT, d),
-    ]);
-    setOccupancy(occ);
-    setRevenue(rev);
-  }, []);
+  const days = PERIODS.find((p) => p.key === periodKey)?.days || 7;
 
   const loadAll = useCallback(async () => {
     setLoading(true);
@@ -95,42 +229,45 @@ export default function ReportsPage() {
     }
   }, []);
 
-  useEffect(() => {
-    loadAll();
-  }, [loadAll]);
+  const loadCharts = useCallback(async (d) => {
+    const [occ, rev] = await Promise.all([
+      getReportOccupancy(TENANT, d),
+      getReportRevenue(TENANT, d),
+    ]);
+    setOccupancy(occ);
+    setRevenue(rev);
+  }, []);
 
-  async function handlePeriod(d) {
-    setDays(d);
+  useEffect(() => { loadAll(); }, [loadAll]);
+
+  async function handlePeriod(key) {
+    setPeriodKey(key);
     try {
-      await loadCharts(d);
+      await loadCharts(PERIODS.find((p) => p.key === key)?.days || 7);
     } catch (err) {
-      setError(err.message);
       toast(err.message || "Error al cargar el período", "error");
     }
   }
 
   const occData = occupancy?.data || [];
   const revData = revenue?.data || [];
-  const maxRevenue = Math.max(...revData.map(r => r.revenue_cents || 0), 1);
-  const maxCountry = Math.max(...(guestStats?.top_countries || []).map(c => c.count), 1);
-  const labelEvery = Math.max(1, Math.ceil(revData.length / 10));
-  const returningPct = guestStats && guestStats.total_guests > 0
-    ? Math.round((guestStats.returning_guests / guestStats.total_guests) * 100)
-    : 0;
+  const countries = guestStats?.top_countries || [];
+  const maxRevenue = Math.max(...revData.map((r) => r.revenue_cents || 0), 1);
+  const maxCountry = Math.max(...countries.map((c) => c.count), 1);
+  const returningPct =
+    guestStats && guestStats.total_guests > 0
+      ? Math.round((guestStats.returning_guests / guestStats.total_guests) * 100)
+      : 0;
 
   return (
     <div className="animate-fade-in">
-      <PageHeader
-        title="Reportes"
-        subtitle="Rendimiento del hotel en tiempo real"
-        actions={
-          <FilterPills
-            options={PERIODS.map(p => ({ value: p.days, label: p.label }))}
-            value={days}
-            onChange={handlePeriod}
-          />
-        }
-      />
+      <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold text-stone-900">Reportes</h1>
+          <p className="mt-1 text-sm text-stone-400">Rendimiento del hotel en tiempo real</p>
+        </div>
+        <FilterPills options={PERIODS.map(({ key, label }) => ({ key, label }))} value={periodKey} onChange={handlePeriod} />
+      </div>
 
       {error && !loading ? (
         <ErrorState message={error} onRetry={loadAll} />
@@ -138,110 +275,85 @@ export default function ReportsPage() {
         <LoadingState label="Cargando reportes..." />
       ) : (
         <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
+          <div className="mb-6 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
             <StatCard
               label="Tasa de Ocupación"
               value={`${Number(dashboard?.occupancy_rate || 0).toFixed(1)}%`}
               sub={`${dashboard?.occupied_rooms ?? 0} de ${dashboard?.total_rooms ?? 0} habitaciones`}
-              color="#1a6bf5"
-              icon="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
+              icon={Home}
+              colorClass="text-emerald-600"
             />
             <StatCard
               label="ADR (Tarifa Media)"
               value={money(dashboard?.adr)}
               sub="Ingreso promedio por noche vendida"
-              color="#8b5cf6"
-              icon="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+              icon={DollarSign}
+              colorClass="text-amber-600"
             />
             <StatCard
               label="RevPAR"
               value={money(dashboard?.revpar)}
               sub={`Ingreso por habitación disponible (${dashboard?.available_rooms ?? 0} libres)`}
-              color="#f59e0b"
-              icon="M13 10V3L4 14h7v7l9-11h-7z"
+              icon={TrendingUp}
+              colorClass="text-gold-600"
             />
             <StatCard
               label="Ingresos Totales"
               value={money(dashboard?.total_revenue)}
               sub="Histórico acumulado"
-              color="#10b981"
-              icon="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+              icon={TrendingUp}
+              colorClass="text-sky-600"
             />
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-8">
+          <div className="mb-6 grid grid-cols-1 gap-5 lg:grid-cols-2">
             <Card>
               <CardHeader
                 title={`Ocupación (${days} días)`}
                 action={
                   <div className="text-right">
-                    <p className="text-sm font-bold text-brand-600 dark:text-brand-400">{Number(occupancy?.average || 0).toFixed(1)}%</p>
-                    <p className="text-xs text-slate-400 dark:text-slate-500">promedio</p>
+                    <p className="text-base font-bold text-stone-900">{Number(occupancy?.average || 0).toFixed(1)}%</p>
+                    <p className="text-xs text-stone-400">promedio</p>
                   </div>
                 }
               />
               <CardContent>
-                <div className="space-y-3 max-h-96 overflow-y-auto pr-1">
-                  {occData.map(item => (
-                    <div key={item.date} className="flex items-center gap-3">
-                      <span className="w-14 text-xs text-slate-400 dark:text-slate-500 shrink-0">{formatDate(item.date)}</span>
-                      <div className="flex-1 h-2.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                        <div
-                          className="h-full rounded-full transition-all duration-300"
-                          style={{
-                            width: `${Math.min(item.occupancy_rate || 0, 100)}%`,
-                            backgroundColor: item.occupancy_rate >= 80 ? "#10b981" : item.occupancy_rate >= 50 ? "#1a6bf5" : "#f59e0b",
-                          }}
-                        />
-                      </div>
-                      <span className="w-12 text-right text-xs font-medium text-slate-600 dark:text-slate-300 shrink-0">{Number(item.occupancy_rate || 0).toFixed(0)}%</span>
-                    </div>
-                  ))}
-                  {occData.length === 0 && (
-                    <EmptyState compact title="Sin datos de ocupación" description="No hay registros para el período seleccionado" />
-                  )}
-                </div>
+                {occData.length === 0 ? (
+                  <EmptyState title="Sin datos de ocupación" description="No hay registros para el período seleccionado" />
+                ) : (
+                  <OccupancyChart data={occData} />
+                )}
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader
                 title={`Ingresos por Día (${days} días)`}
-                action={<span className="text-xs text-slate-400 dark:text-slate-500">pasa el cursor sobre las barras</span>}
+                action={<span className="text-xs text-stone-400">{money(revenue?.total_cents)} en el período</span>}
               />
               <CardContent>
-                <div className="flex items-end gap-1 h-44">
-                  {revData.map((item, i) => (
-                    <div
-                      key={item.date}
-                      className="flex-1 h-full flex flex-col justify-end min-w-[4px]"
-                      title={`${formatDate(item.date)}: ${money(item.revenue_cents)} · ${item.reservations} reserva${item.reservations !== 1 ? "s" : ""}`}
-                    >
-                      <div
-                        className="w-full bg-brand-500 hover:bg-brand-600 rounded-t transition-colors duration-150"
-                        style={{ height: `${Math.max((item.revenue_cents / maxRevenue) * 100, 2)}%`, opacity: i % labelEvery === 0 ? 1 : 0.75 }}
-                      />
+                {revData.length === 0 ? (
+                  <EmptyState title="Sin datos de ingresos" description="No hay ventas registradas en el período" />
+                ) : (
+                  <>
+                    <RevenueChart data={revData} />
+                    <div className="mt-2 flex justify-between px-1">
+                      {revData.filter((_, i) => i % Math.max(1, Math.ceil(revData.length / 10)) === 0).map((item) => (
+                        <span key={item.date} className="text-xs text-stone-400">{formatDate(item.date)}</span>
+                      ))}
                     </div>
-                  ))}
-                  {revData.length === 0 && (
-                    <EmptyState compact title="Sin datos de ingresos" description="No hay ventas registradas en el período" />
-                  )}
-                </div>
-                <div className="flex justify-between mt-2 pl-1 pr-1">
-                  {revData.filter((_, i) => i % labelEvery === 0).map(item => (
-                    <span key={item.date} className="text-[10px] text-slate-400 dark:text-slate-500">{formatDate(item.date)}</span>
-                  ))}
-                </div>
-                <div className="flex items-center justify-between mt-6 pt-4 border-t border-slate-100 dark:border-slate-800">
-                  <div>
-                    <p className="text-xs text-slate-400 dark:text-slate-500">Total del período</p>
-                    <p className="text-xl font-bold text-slate-900 dark:text-slate-100">{money(revenue?.total_cents)}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-xs text-slate-400 dark:text-slate-500">Promedio diario</p>
-                    <p className="text-xl font-bold text-brand-600 dark:text-brand-400">{money(revenue?.average_cents)}</p>
-                  </div>
-                </div>
+                    <div className="mt-6 flex items-center justify-between pt-4 border-t border-stone-100">
+                      <div>
+                        <p className="text-xs text-stone-400">Total del período</p>
+                        <p className="mt-0.5 text-xl font-bold text-stone-900">{money(revenue?.total_cents)}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xs text-stone-400">Promedio diario</p>
+                        <p className="mt-0.5 text-xl font-bold text-stone-900">{money(revenue?.average_cents)}</p>
+                      </div>
+                    </div>
+                  </>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -249,37 +361,39 @@ export default function ReportsPage() {
           <Card>
             <CardHeader title="Estadísticas de Huéspedes" />
             <CardContent>
-              <div className="grid grid-cols-1 lg:grid-cols-4 gap-5">
-                <div className="p-5 rounded-lg bg-slate-50 dark:bg-slate-800/50">
-                  <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Total Huéspedes</p>
-                  <p className="text-3xl font-bold text-slate-900 dark:text-slate-100 mt-2">{guestStats?.total_guests ?? 0}</p>
-                  <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">registrados históricamente</p>
+              <div className="grid grid-cols-1 gap-5 lg:grid-cols-4">
+                <div className="p-5 rounded-xl border border-stone-100" style={{ background: "var(--stone-50)" }}>
+                  <p className="text-xs font-medium text-stone-500 uppercase tracking-wider">Total Huéspedes</p>
+                  <p className="mt-2 text-3xl font-bold text-stone-900">{guestStats?.total_guests ?? 0}</p>
+                  <p className="mt-1 text-xs text-stone-400">registrados históricamente</p>
                 </div>
-                <div className="p-5 rounded-lg bg-slate-50 dark:bg-slate-800/50">
-                  <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Huéspedes Recurrentes</p>
-                  <p className="text-3xl font-bold text-emerald-600 dark:text-emerald-400 mt-2">{returningPct}%</p>
-                  <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">{guestStats?.returning_guests ?? 0} volvieron al hotel</p>
+                <div className="p-5 rounded-xl border border-stone-100" style={{ background: "var(--stone-50)" }}>
+                  <p className="text-xs font-medium text-stone-500 uppercase tracking-wider">Huéspedes Recurrentes</p>
+                  <p className="mt-2 text-3xl font-bold text-stone-900">{returningPct}%</p>
+                  <p className="mt-1 text-xs text-stone-400">{guestStats?.returning_guests ?? 0} volvieron al hotel</p>
                 </div>
-                <div className="p-5 rounded-lg bg-slate-50 dark:bg-slate-800/50">
-                  <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Estancia Promedio</p>
-                  <p className="text-3xl font-bold text-slate-900 dark:text-slate-100 mt-2">{Number(guestStats?.avg_stay_nights || 0).toFixed(1)}</p>
-                  <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">noches por huésped</p>
+                <div className="p-5 rounded-xl border border-stone-100" style={{ background: "var(--stone-50)" }}>
+                  <p className="text-xs font-medium text-stone-500 uppercase tracking-wider">Estancia Promedio</p>
+                  <p className="mt-2 text-3xl font-bold text-stone-900">{Number(guestStats?.avg_stay_nights || 0).toFixed(1)}</p>
+                  <p className="mt-1 text-xs text-stone-400">noches por huésped</p>
                 </div>
-                <div className="p-5 rounded-lg bg-brand-600 text-white">
-                  <p className="text-xs font-medium text-blue-100">Top Países</p>
-                  <div className="mt-2 space-y-2">
-                    {(guestStats?.top_countries || []).slice(0, 4).map(c => (
+                <div className="p-5 rounded-xl" style={{ background: "var(--gold-500)" }}>
+                  <p className="text-xs font-semibold text-stone-50 uppercase tracking-wider" style={{ opacity: 0.75 }}>Top Países</p>
+                  <div className="mt-3 space-y-2.5">
+                    {countries.slice(0, 4).map((c) => (
                       <div key={c.country}>
                         <div className="flex justify-between text-xs">
-                          <span>{c.country}</span>
-                          <span className="font-semibold">{c.count}</span>
+                          <span style={{ color: "var(--stone-50)" }}>{c.country}</span>
+                          <span className="font-semibold" style={{ color: "var(--stone-50)" }}>{c.count}</span>
                         </div>
-                        <div className="mt-1 h-1 bg-white/20 rounded-full overflow-hidden">
-                          <div className="h-full bg-white rounded-full" style={{ width: `${(c.count / maxCountry) * 100}%` }} />
+                        <div className="mt-1 h-1 rounded-full overflow-hidden" style={{ background: "var(--gold-300)" }}>
+                          <div className="h-full rounded-full" style={{ width: `${(c.count / maxCountry) * 100}%`, background: "var(--stone-50)" }} />
                         </div>
                       </div>
                     ))}
-                    {(guestStats?.top_countries || []).length === 0 && <p className="text-xs text-blue-100 py-2">Sin datos</p>}
+                    {countries.length === 0 && (
+                      <p className="py-2 text-xs" style={{ color: "var(--stone-50)", opacity: 0.75 }}>Sin datos</p>
+                    )}
                   </div>
                 </div>
               </div>

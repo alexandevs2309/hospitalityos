@@ -2,14 +2,49 @@
 
 import { useState, useEffect } from "react";
 import { listRooms, createRoom, updateRoomStatus, listRoomTypes } from "@/lib/api";
-import { Card, Button, StatusBadge, Modal, Input, Select, LoadingState, ErrorState, EmptyState, PageHeader, FilterPills, useToast } from "@/components/ui";
+import {
+  Button,
+  Card,
+  CardContent,
+  EmptyState,
+  ErrorState,
+  FilterPills,
+  Input,
+  Modal,
+  Select,
+  Skeleton,
+  StatusBadge,
+  useToast,
+} from "@/components/ui";
+import { Plus, Building2, Building, Search, Home, Wrench, Sparkles, ChevronDown } from "lucide-react";
+
+const TENANT = "eden-hotel";
 
 const statusConfig = {
-  available: { label: "Disponible", tone: "success", color: "bg-emerald-500" },
-  occupied: { label: "Ocupada", tone: "warning", color: "bg-amber-500" },
-  cleaning: { label: "Limpieza", tone: "info", color: "bg-sky-500" },
-  maintenance: { label: "Mantenimiento", tone: "danger", color: "bg-rose-500" },
+  available: { label: "Disponible", tone: "success", colorClass: "text-emerald-500", borderColor: "var(--emerald-500)" },
+  occupied: { label: "Ocupada", tone: "warning", colorClass: "text-amber-500", borderColor: "var(--amber-500)" },
+  cleaning: { label: "Limpieza", tone: "info", colorClass: "text-sky-500", borderColor: "var(--sky-500)" },
+  maintenance: { label: "Mantenimiento", tone: "danger", colorClass: "text-rose-500", borderColor: "var(--rose-500)" },
 };
+
+const EMPTY_FORM = { room_type_id: "", number: "", floor: "" };
+
+function RoomSkeleton() {
+  return (
+    <Card>
+      <CardContent>
+        <div className="flex items-start justify-between gap-2">
+          <div>
+            <Skeleton style={{ height: "26px", width: "64px", marginBottom: "8px" }} />
+            <Skeleton style={{ height: "11px", width: "84px" }} />
+          </div>
+          <Skeleton style={{ height: "22px", width: "80px", borderRadius: "9999px" }} />
+        </div>
+        <Skeleton style={{ height: "22px", width: "65%", marginTop: "20px" }} />
+      </CardContent>
+    </Card>
+  );
+}
 
 export default function RoomsPage() {
   const toast = useToast();
@@ -17,13 +52,14 @@ export default function RoomsPage() {
   const [roomTypes, setRoomTypes] = useState([]);
   const [filter, setFilter] = useState("");
   const [showModal, setShowModal] = useState(false);
-  const [form, setForm] = useState({ room_type_id: "", number: "", floor: "" });
+  const [creating, setCreating] = useState(false);
+  const [form, setForm] = useState(EMPTY_FORM);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(null);
 
   async function load() {
     try {
-      const [r, rt] = await Promise.all([listRooms("eden-hotel", filter || undefined), listRoomTypes("eden-hotel")]);
+      const [r, rt] = await Promise.all([listRooms(TENANT, filter || undefined), listRoomTypes(TENANT)]);
       setRooms(r);
       setRoomTypes(rt);
       setLoadError(null);
@@ -34,84 +70,130 @@ export default function RoomsPage() {
     }
   }
 
-  useEffect(() => { load(); }, [filter]);
+  useEffect(() => {
+    load();
+  }, [filter]);
 
-  function handleChange(e) { setForm({ ...form, [e.target.name]: e.target.value }); }
+  function handleChange(e) {
+    setForm({ ...form, [e.target.name]: e.target.value });
+  }
 
   async function handleCreate(e) {
     e.preventDefault();
+    setCreating(true);
     try {
-      await createRoom(form, "eden-hotel");
-      toast.success("Habitacion creada");
-      setForm({ room_type_id: "", number: "", floor: "" });
+      await createRoom(form, TENANT);
+      toast("Habitación creada", "success");
+      setForm(EMPTY_FORM);
       setShowModal(false);
-      load();
+      await load();
     } catch (err) {
-      toast.error(err.message);
+      toast(err.message || "No se pudo crear la habitación", "error");
+    } finally {
+      setCreating(false);
     }
   }
 
   async function handleStatus(rm, s) {
     try {
-      await updateRoomStatus(rm.id, s, "eden-hotel");
-      toast.success(`Habitacion ${rm.number} ahora en ${statusConfig[s].label.toLowerCase()}`);
-      load();
+      await updateRoomStatus(rm.id, s, TENANT);
+      toast(`Habitación ${rm.number} ahora en ${statusConfig[s].label.toLowerCase()}`, "success");
+      await load();
     } catch (err) {
-      toast.error(err.message);
+      toast(err.message || "No se pudo actualizar el estado", "error");
     }
   }
 
-  const counts = { all: rooms.length, available: rooms.filter(r => r.status === "available").length, occupied: rooms.filter(r => r.status === "occupied").length, cleaning: rooms.filter(r => r.status === "cleaning").length, maintenance: rooms.filter(r => r.status === "maintenance").length };
+  const typeNameOf = (id) => roomTypes.find((rt) => rt.id === id)?.name;
+
+  const counts = {
+    all: rooms.length,
+    available: rooms.filter((r) => r.status === "available").length,
+    occupied: rooms.filter((r) => r.status === "occupied").length,
+    cleaning: rooms.filter((r) => r.status === "cleaning").length,
+    maintenance: rooms.filter((r) => r.status === "maintenance").length,
+  };
 
   const filterOptions = [
     { key: "", label: "Todas", count: counts.all },
-    { key: "available", label: "Disponible", count: counts.available },
-    { key: "occupied", label: "Ocupada", count: counts.occupied },
+    { key: "available", label: "Disponibles", count: counts.available },
+    { key: "occupied", label: "Ocupadas", count: counts.occupied },
     { key: "cleaning", label: "Limpieza", count: counts.cleaning },
-    { key: "maintenance", label: "Mant.", count: counts.maintenance },
+    { key: "maintenance", label: "Mantenimiento", count: counts.maintenance },
   ];
 
   return (
     <div className="animate-fade-in">
-      <PageHeader
-        title="Habitaciones"
-        description={`${rooms.length} habitaciones registradas`}
-        actions={
-          <Button onClick={() => setShowModal(true)}>+ Nueva Habitacion</Button>
-        }
-      />
+      <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold text-stone-900" style={{ lineHeight: 1.2 }}>
+            Habitaciones
+          </h1>
+          <p className="mt-1 text-sm text-stone-400">
+            {rooms.length} habitaciones registradas
+          </p>
+        </div>
+        <Button onClick={() => setShowModal(true)}>
+          <Plus className="w-4 h-4 mr-2" /> Nueva Habitación
+        </Button>
+      </div>
 
       <FilterPills options={filterOptions} value={filter} onChange={setFilter} className="mb-6" />
 
       {loading ? (
-        <LoadingState label="Cargando habitaciones..." />
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
+          {Array.from({ length: 10 }).map((_, i) => (
+            <RoomSkeleton key={i} />
+          ))}
+        </div>
       ) : loadError ? (
         <Card>
           <ErrorState message={loadError} onRetry={load} />
         </Card>
+      ) : rooms.length === 0 ? (
+        <Card>
+          <EmptyState
+            icon={<Building2 className="w-12 h-12 text-stone-300" />}
+            title="No hay habitaciones registradas"
+            description="Crea la primera habitación para empezar a gestionar el hotel"
+            action={<Button onClick={() => setShowModal(true)}>Crear primera habitación</Button>}
+          />
+        </Card>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
           {rooms.map((rm) => {
             const sc = statusConfig[rm.status] || statusConfig.available;
+            const typeName = typeNameOf(rm.room_type_id);
             return (
-              <Card key={rm.id} hover className="overflow-hidden dark:bg-slate-900 dark:border-slate-800">
-                <div className={`h-1.5 ${sc.color}`} />
-                <CardContent className="p-5">
-                  <div className="flex items-start justify-between mb-3">
+              <Card
+                key={rm.id}
+                className="group transition-shadow hover:shadow-md"
+                style={{ borderLeft: `3px solid ${sc.borderColor}` }}
+              >
+                <CardContent>
+                  <div className="flex items-start justify-between gap-2">
                     <div>
-                      <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">{rm.number}</p>
-                      <p className="text-sm text-slate-400 dark:text-slate-500">Piso {rm.floor || "-"}</p>
+                      <p className="text-2xl font-bold text-stone-900" style={{ lineHeight: 1.2 }}>
+                        {rm.number}
+                      </p>
+                      <p className="mt-1 text-xs text-stone-500">
+                        Piso {rm.floor || "-"}
+                        {typeName ? ` · ${typeName}` : ""}
+                      </p>
                     </div>
-                    <StatusBadge tone={sc.tone}>{sc.label}</StatusBadge>
+                    <StatusBadge tone={sc.tone} dot>
+                      {sc.label}
+                    </StatusBadge>
                   </div>
-                  <div className="flex gap-1.5 flex-wrap mt-4">
-                    {Object.entries(statusConfig).map(([key, cfg]) => (
-                      rm.status !== key && (
-                        <Button key={key} size="sm" variant={cfg.tone} onClick={() => handleStatus(rm, key)}>
+
+                  <div className="mt-4 flex flex-wrap gap-1 opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100">
+                    {Object.entries(statusConfig).map(([key, cfg]) =>
+                      rm.status !== key ? (
+                        <Button key={key} variant="ghost" size="xs" onClick={() => handleStatus(rm, key)}>
                           {cfg.label}
                         </Button>
-                      )
-                    ))}
+                      ) : null
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -120,32 +202,25 @@ export default function RoomsPage() {
         </div>
       )}
 
-      {!loading && !loadError && rooms.length === 0 && (
-        <Card>
-          <EmptyState
-            icon={
-              <svg className="w-12 h-12" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-              </svg>
-            }
-            title="No hay habitaciones registradas"
-            description="Crea la primera habitacion para empezar"
-            action={<Button onClick={() => setShowModal(true)}>Crear primera habitacion</Button>}
-          />
-        </Card>
-      )}
-
-      <Modal open={showModal} onClose={() => setShowModal(false)} title="Nueva Habitacion">
+      <Modal open={showModal} onClose={() => setShowModal(false)} title="Nueva Habitación">
         <form onSubmit={handleCreate} className="space-y-4">
           <Select name="room_type_id" value={form.room_type_id} onChange={handleChange} required>
             <option value="">Tipo...</option>
-            {roomTypes.map((rt) => <option key={rt.id} value={rt.id}>{rt.name}</option>)}
+            {roomTypes.map((rt) => (
+              <option key={rt.id} value={rt.id}>
+                {rt.name}
+              </option>
+            ))}
           </Select>
-          <Input name="number" placeholder="Numero (101)" value={form.number} onChange={handleChange} required />
+          <Input name="number" placeholder="Número (101)" value={form.number} onChange={handleChange} required />
           <Input name="floor" placeholder="Piso (1)" value={form.floor} onChange={handleChange} />
           <div className="flex justify-end gap-3 pt-2">
-            <Button type="button" variant="outline" onClick={() => setShowModal(false)}>Cancelar</Button>
-            <Button type="submit">Crear</Button>
+            <Button variant="outline" onClick={() => setShowModal(false)}>
+              Cancelar
+            </Button>
+            <Button type="submit" loading={creating}>
+              Crear
+            </Button>
           </div>
         </form>
       </Modal>
