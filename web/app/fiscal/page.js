@@ -2,12 +2,26 @@
 
 import { useState, useEffect } from "react";
 import { listFiscalReceipts, createFiscalReceipt, validateRNC, getFiscalSummary } from "@/lib/api";
+import {
+  PageHeader,
+  Button,
+  Badge,
+  Card,
+  CardHeader,
+  CardContent,
+  Input,
+  Select,
+  LoadingState,
+  EmptyState,
+  ErrorState,
+  useToast,
+} from "@/components/ui";
 
 const ncfConfig = {
-  B01: { label: "Consumo Final", color: "text-emerald-700 bg-emerald-50 border border-emerald-200" },
-  B02: { label: "Credito Fiscal", color: "text-brand-700 bg-brand-50 border border-brand-200" },
-  B03: { label: "Gobierno", color: "text-violet-700 bg-violet-50 border border-violet-200" },
-  B04: { label: "Exento", color: "text-slate-600 bg-slate-100 border border-slate-200" },
+  B01: { label: "Consumo Final", variant: "success" },
+  B02: { label: "Credito Fiscal", variant: "info" },
+  B03: { label: "Gobierno", variant: "violet" },
+  B04: { label: "Exento", variant: "neutral" },
 };
 
 function formatDOP(cents) {
@@ -22,16 +36,17 @@ function formatRNC(rnc) {
 }
 
 export default function FiscalPage() {
+  const toast = useToast();
   const [receipts, setReceipts] = useState([]);
   const [summary, setSummary] = useState({ total_receipts: 0, total_itbis_cents: 0, total_propina_cents: 0, total_revenue_cents: 0 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [message, setMessage] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ reservation_id: "", customer_rnc: "", ncf_type: "B01", subtotal_cents: "" });
   const [rncInput, setRncInput] = useState("");
   const [rncResult, setRncResult] = useState(null);
   const [validating, setValidating] = useState(false);
+  const [creating, setCreating] = useState(false);
 
   async function load() {
     try {
@@ -53,7 +68,7 @@ export default function FiscalPage() {
 
   async function handleCreate(e) {
     e.preventDefault();
-    setMessage(null);
+    setCreating(true);
     try {
       await createFiscalReceipt({
         reservation_id: form.reservation_id,
@@ -61,24 +76,29 @@ export default function FiscalPage() {
         ncf_type: form.ncf_type,
         subtotal_cents: Number(form.subtotal_cents),
       }, "eden-hotel");
-      setMessage({ type: "success", text: "Comprobante fiscal creado" });
+      toast("Comprobante fiscal creado", "success");
       setForm({ reservation_id: "", customer_rnc: "", ncf_type: "B01", subtotal_cents: "" });
       setShowForm(false);
       load();
-    } catch (err) { setMessage({ type: "error", text: err.message }); }
+    } catch (err) {
+      toast(err.message || "Error al crear el comprobante", "error");
+    } finally {
+      setCreating(false);
+    }
   }
 
   async function handleValidateRNC(e) {
     e.preventDefault();
     if (!rncInput.trim()) return;
-    setMessage(null);
     setValidating(true);
     setRncResult(null);
     try {
       const res = await validateRNC(rncInput.replace(/\D/g, ""), "eden-hotel");
       setRncResult(res);
+      toast(res.valid ? "RNC valido ante DGII" : "RNC invalido", res.valid ? "success" : "error");
     } catch (err) {
       setRncResult({ valid: false, rnc: rncInput, name: err.message });
+      toast(err.message || "No se pudo validar el RNC", "error");
     } finally {
       setValidating(false);
     }
@@ -92,135 +112,151 @@ export default function FiscalPage() {
   ];
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-3xl font-bold text-slate-900" style={{ fontFamily: "var(--font-display)" }}>Fiscal (e-CF)</h1>
-          <p className="text-slate-500 mt-1">Cumplimiento fiscal DGII - Comprobantes Electronicos</p>
-        </div>
-        <button onClick={() => setShowForm(!showForm)} className="px-5 py-2.5 bg-brand-600 text-white rounded-lg text-sm font-medium hover:bg-brand-700 transition-colors">
-          {showForm ? "Cancelar" : "+ Nuevo Comprobante"}
-        </button>
-      </div>
+    <div className="animate-fade-in">
+      <PageHeader
+        title="Fiscal (e-CF)"
+        subtitle="Cumplimiento fiscal DGII - Comprobantes Electronicos"
+        actions={
+          <Button onClick={() => setShowForm(!showForm)}>
+            {showForm ? "Cancelar" : "+ Nuevo Comprobante"}
+          </Button>
+        }
+      />
 
-      {(error || message) && (
-        <div className={`mb-6 px-4 py-3 rounded-lg text-sm font-medium ${error || message.type === "error" ? "bg-rose-50 text-rose-700 border border-rose-200" : "bg-emerald-50 text-emerald-700 border border-emerald-200"}`}>
-          {error || message.text}
-        </div>
-      )}
-
-      {loading ? (
-        <div className="bg-white rounded-xl border border-slate-200 p-16 text-center">
-          <div className="w-8 h-8 border-4 border-brand-200 border-t-brand-600 rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-slate-500">Cargando datos fiscales...</p>
-        </div>
+      {error ? (
+        <ErrorState message={error} onRetry={load} />
+      ) : loading ? (
+        <LoadingState label="Cargando datos fiscales..." />
       ) : (
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
             {cards.map(c => (
-              <div key={c.label} className="bg-white rounded-xl border border-slate-200 p-6 hover:shadow-md transition-shadow">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-slate-500">{c.label}</p>
-                    <p className={`mt-2 font-bold ${typeof c.value === "number" ? "text-3xl" : "text-2xl"} text-slate-900`}>{c.value}</p>
+              <Card key={c.label} hover>
+                <CardContent className="pt-6">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-slate-500 dark:text-slate-400">{c.label}</p>
+                      <p className={`mt-2 font-bold text-slate-900 dark:text-slate-100 ${typeof c.value === "number" ? "text-3xl" : "text-2xl"}`}>{c.value}</p>
+                    </div>
+                    <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: `${c.color}15` }}>
+                      <svg className="w-5 h-5" fill="none" stroke={c.color} strokeWidth="2" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" d={c.icon} />
+                      </svg>
+                    </div>
                   </div>
-                  <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: `${c.color}15` }}>
-                    <svg className="w-5 h-5" fill="none" stroke={c.color} strokeWidth="2" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" d={c.icon} />
-                    </svg>
-                  </div>
-                </div>
-              </div>
+                </CardContent>
+              </Card>
             ))}
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-8">
-            <div className="bg-white rounded-xl border border-slate-200 p-6">
-              <h2 className="text-lg font-semibold text-slate-900 mb-4" style={{ fontFamily: "var(--font-display)" }}>Validador de RNC</h2>
-              <form onSubmit={handleValidateRNC} className="flex gap-3">
-                <input value={rncInput} onChange={(e) => { setRncInput(e.target.value); setRncResult(null); }} placeholder="RNC (ej. 131123456)" className="flex-1 px-3 py-2.5 rounded-lg border border-slate-200 text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none" />
-                <button type="submit" disabled={validating} className="px-5 py-2.5 bg-brand-600 text-white rounded-lg text-sm font-medium hover:bg-brand-700 transition-colors disabled:opacity-50">
-                  {validating ? "Validando..." : "Validar"}
-                </button>
-              </form>
-              {rncResult && (
-                <div className={`mt-4 px-4 py-3 rounded-lg text-sm ${rncResult.valid ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-rose-50 text-rose-700 border border-rose-200"}`}>
-                  <p className="font-semibold">{rncResult.valid ? "RNC Valido" : "RNC Invalido"}</p>
-                  <p className="mt-0.5 font-mono">{formatRNC(rncResult.rnc)}</p>
-                  {rncResult.name && <p className="mt-0.5">{rncResult.name}</p>}
-                </div>
-              )}
-            </div>
-
-            <div className="bg-white rounded-xl border border-slate-200 p-6">
-              <h2 className="text-lg font-semibold text-slate-900 mb-4" style={{ fontFamily: "var(--font-display)" }}>Tipos de NCF</h2>
-              <div className="grid grid-cols-2 gap-3">
-                {Object.entries(ncfConfig).map(([code, cfg]) => (
-                  <div key={code} className="flex items-center gap-3 px-3 py-2.5 rounded-lg border border-slate-200">
-                    <span className={`px-2 py-0.5 rounded text-xs font-bold ${cfg.color}`}>{code}</span>
-                    <span className="text-sm text-slate-600">{cfg.label}</span>
+            <Card>
+              <CardHeader title="Validador de RNC" />
+              <CardContent>
+                <form onSubmit={handleValidateRNC} className="flex gap-3">
+                  <Input
+                    value={rncInput}
+                    onChange={(e) => { setRncInput(e.target.value); setRncResult(null); }}
+                    placeholder="RNC (ej. 131123456)"
+                    className="flex-1"
+                  />
+                  <Button type="submit" loading={validating}>
+                    {validating ? "Validando..." : "Validar"}
+                  </Button>
+                </form>
+                {rncResult && (
+                  <div className={`mt-4 px-4 py-3 rounded-lg text-sm ${
+                    rncResult.valid
+                      ? "bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20"
+                      : "bg-rose-50 text-rose-700 border border-rose-200 dark:bg-rose-500/10 dark:text-rose-300 dark:border-rose-500/20"
+                  }`}>
+                    <p className="font-semibold">{rncResult.valid ? "RNC Valido" : "RNC Invalido"}</p>
+                    <p className="mt-0.5 font-mono">{formatRNC(rncResult.rnc)}</p>
+                    {rncResult.name && <p className="mt-0.5">{rncResult.name}</p>}
                   </div>
-                ))}
-              </div>
-            </div>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader title="Tipos de NCF" />
+              <CardContent>
+                <div className="grid grid-cols-2 gap-3">
+                  {Object.entries(ncfConfig).map(([code, cfg]) => (
+                    <div key={code} className="flex items-center gap-3 px-3 py-2.5 rounded-lg border border-slate-200 dark:border-slate-800">
+                      <Badge variant={cfg.variant}>{code}</Badge>
+                      <span className="text-sm text-slate-600 dark:text-slate-300">{cfg.label}</span>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
           </div>
 
           {showForm && (
-            <div className="bg-white rounded-xl border border-slate-200 p-6 mb-6">
-              <h2 className="text-lg font-semibold mb-4" style={{ fontFamily: "var(--font-display)" }}>Nuevo Comprobante Fiscal</h2>
-              <form onSubmit={handleCreate} className="grid grid-cols-1 md:grid-cols-5 gap-4">
-                <input name="reservation_id" placeholder="ID Reserva" value={form.reservation_id} onChange={handleChange} required className="px-3 py-2.5 rounded-lg border border-slate-200 text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none" />
-                <input name="customer_rnc" placeholder="RNC Cliente" value={form.customer_rnc} onChange={handleChange} className="px-3 py-2.5 rounded-lg border border-slate-200 text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none" />
-                <select name="ncf_type" value={form.ncf_type} onChange={handleChange} required className="px-3 py-2.5 rounded-lg border border-slate-200 text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none">
-                  <option value="B01">B01 - Consumo Final</option>
-                  <option value="B02">B02 - Credito Fiscal</option>
-                  <option value="B03">B03 - Gobierno</option>
-                  <option value="B04">B04 - Exento</option>
-                </select>
-                <input name="subtotal_cents" type="number" min="0" placeholder="Subtotal (centavos)" value={form.subtotal_cents} onChange={handleChange} required className="px-3 py-2.5 rounded-lg border border-slate-200 text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none" />
-                <button type="submit" className="px-5 py-2.5 bg-brand-600 text-white rounded-lg text-sm font-medium hover:bg-brand-700 transition-colors">Crear</button>
-              </form>
-            </div>
+            <Card className="mb-6 animate-scale-in">
+              <CardHeader title="Nuevo Comprobante Fiscal" />
+              <CardContent>
+                <form onSubmit={handleCreate} className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                  <Input name="reservation_id" placeholder="ID Reserva" value={form.reservation_id} onChange={handleChange} required />
+                  <Input name="customer_rnc" placeholder="RNC Cliente" value={form.customer_rnc} onChange={handleChange} />
+                  <Select name="ncf_type" value={form.ncf_type} onChange={handleChange} required>
+                    <option value="B01">B01 - Consumo Final</option>
+                    <option value="B02">B02 - Credito Fiscal</option>
+                    <option value="B03">B03 - Gobierno</option>
+                    <option value="B04">B04 - Exento</option>
+                  </Select>
+                  <Input name="subtotal_cents" type="number" min="0" placeholder="Subtotal (centavos)" value={form.subtotal_cents} onChange={handleChange} required />
+                  <Button type="submit" loading={creating}>Crear</Button>
+                </form>
+              </CardContent>
+            </Card>
           )}
 
-          <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-slate-200 bg-slate-50">
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">NCF</th>
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">RNC Cliente</th>
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Tipo</th>
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Subtotal</th>
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">ITBIS</th>
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Propina</th>
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Total</th>
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Fecha</th>
-                </tr>
-              </thead>
-              <tbody>
-                {receipts.map(r => {
-                  const nc = ncfConfig[r.ncf_type] || ncfConfig.B01;
-                  return (
-                    <tr key={r.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
-                      <td className="px-5 py-4 text-sm font-mono font-medium text-slate-900">{r.ncf_number}</td>
-                      <td className="px-5 py-4 text-sm font-mono text-slate-600">{formatRNC(r.customer_rnc)}</td>
-                      <td className="px-5 py-4">
-                        <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${nc.color}`}>{r.ncf_type} - {nc.label}</span>
-                      </td>
-                      <td className="px-5 py-4 text-sm text-slate-600">{formatDOP(r.subtotal_cents)}</td>
-                      <td className="px-5 py-4 text-sm text-slate-600">{formatDOP(r.itbis_cents)}</td>
-                      <td className="px-5 py-4 text-sm text-slate-600">{formatDOP(r.propina_cents)}</td>
-                      <td className="px-5 py-4 text-sm font-semibold text-slate-900">{formatDOP(r.total_cents)}</td>
-                      <td className="px-5 py-4 text-sm text-slate-500">{new Date(r.issued_at).toLocaleDateString("es-DO")}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-            {receipts.length === 0 && (
-              <div className="p-16 text-center text-slate-400">No hay comprobantes fiscales emitidos</div>
+          <Card className="overflow-hidden">
+            {receipts.length === 0 ? (
+              <EmptyState
+                icon="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                title="No hay comprobantes fiscales emitidos"
+                description="Los e-CF emitidos apareceran aqui con su desglose de ITBIS y propina legal."
+                action={<Button onClick={() => setShowForm(true)}>+ Nuevo Comprobante</Button>}
+              />
+            ) : (
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-slate-200 bg-slate-50 dark:border-slate-800 dark:bg-slate-900">
+                    <th className="text-left px-5 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">NCF</th>
+                    <th className="text-left px-5 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">RNC Cliente</th>
+                    <th className="text-left px-5 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Tipo</th>
+                    <th className="text-left px-5 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Subtotal</th>
+                    <th className="text-left px-5 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">ITBIS</th>
+                    <th className="text-left px-5 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Propina</th>
+                    <th className="text-left px-5 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Total</th>
+                    <th className="text-left px-5 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Fecha</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {receipts.map(r => {
+                    const nc = ncfConfig[r.ncf_type] || ncfConfig.B01;
+                    return (
+                      <tr key={r.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors dark:border-slate-800 dark:hover:bg-slate-800">
+                        <td className="px-5 py-4 text-sm font-mono font-medium text-slate-900 dark:text-slate-100">{r.ncf_number}</td>
+                        <td className="px-5 py-4 text-sm font-mono text-slate-600 dark:text-slate-300">{formatRNC(r.customer_rnc)}</td>
+                        <td className="px-5 py-4">
+                          <Badge variant={nc.variant}>{r.ncf_type} - {nc.label}</Badge>
+                        </td>
+                        <td className="px-5 py-4 text-sm text-slate-600 dark:text-slate-300">{formatDOP(r.subtotal_cents)}</td>
+                        <td className="px-5 py-4 text-sm text-slate-600 dark:text-slate-300">{formatDOP(r.itbis_cents)}</td>
+                        <td className="px-5 py-4 text-sm text-slate-600 dark:text-slate-300">{formatDOP(r.propina_cents)}</td>
+                        <td className="px-5 py-4 text-sm font-semibold text-slate-900 dark:text-slate-100">{formatDOP(r.total_cents)}</td>
+                        <td className="px-5 py-4 text-sm text-slate-500 dark:text-slate-400">{new Date(r.issued_at).toLocaleDateString("es-DO")}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             )}
-          </div>
+          </Card>
         </>
       )}
     </div>

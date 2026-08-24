@@ -2,6 +2,18 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { getReportDashboard, getReportOccupancy, getReportRevenue, getReportGuestStats } from "@/lib/api";
+import {
+  PageHeader,
+  FilterPills,
+  Card,
+  CardHeader,
+  CardContent,
+  Button,
+  LoadingState,
+  ErrorState,
+  EmptyState,
+  useToast,
+} from "@/components/ui";
 
 const TENANT = "eden-hotel";
 const PERIODS = [
@@ -24,24 +36,27 @@ function money(cents) {
 
 function StatCard({ label, value, sub, color, icon }) {
   return (
-    <div className="bg-white rounded-xl border border-slate-200 p-6 hover:shadow-md transition-shadow">
-      <div className="flex items-start justify-between">
-        <div>
-          <p className="text-sm font-medium text-slate-500">{label}</p>
-          <p className="text-3xl font-bold mt-2" style={{ fontFamily: "var(--font-display)" }}>{value}</p>
-          {sub && <p className="text-xs text-slate-400 mt-1">{sub}</p>}
+    <Card hover>
+      <CardContent className="pt-6">
+        <div className="flex items-start justify-between">
+          <div>
+            <p className="text-sm font-medium text-slate-500 dark:text-slate-400">{label}</p>
+            <p className="text-3xl font-bold mt-2 text-slate-900 dark:text-slate-100" style={{ fontFamily: "var(--font-display)" }}>{value}</p>
+            {sub && <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">{sub}</p>}
+          </div>
+          <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0" style={{ background: `${color}15` }}>
+            <svg className="w-5 h-5" fill="none" stroke={color} strokeWidth="2" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d={icon} />
+            </svg>
+          </div>
         </div>
-        <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0" style={{ background: `${color}15` }}>
-          <svg className="w-5 h-5" fill="none" stroke={color} strokeWidth="2" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" d={icon} />
-          </svg>
-        </div>
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 }
 
 export default function ReportsPage() {
+  const toast = useToast();
   const [days, setDays] = useState(7);
   const [dashboard, setDashboard] = useState(null);
   const [occupancy, setOccupancy] = useState(null);
@@ -59,33 +74,39 @@ export default function ReportsPage() {
     setRevenue(rev);
   }, []);
 
-  useEffect(() => {
-    async function load() {
-      setLoading(true);
-      setError(null);
-      try {
-        const [db, occ, rev, gs] = await Promise.all([
-          getReportDashboard(TENANT),
-          getReportOccupancy(TENANT, 7),
-          getReportRevenue(TENANT, 7),
-          getReportGuestStats(TENANT),
-        ]);
-        setDashboard(db);
-        setOccupancy(occ);
-        setRevenue(rev);
-        setGuestStats(gs);
-      } catch (err) { setError(err.message); }
-      finally { setLoading(false); }
+  const loadAll = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const [db, occ, rev, gs] = await Promise.all([
+        getReportDashboard(TENANT),
+        getReportOccupancy(TENANT, 7),
+        getReportRevenue(TENANT, 7),
+        getReportGuestStats(TENANT),
+      ]);
+      setDashboard(db);
+      setOccupancy(occ);
+      setRevenue(rev);
+      setGuestStats(gs);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
     }
-    load();
   }, []);
+
+  useEffect(() => {
+    loadAll();
+  }, [loadAll]);
 
   async function handlePeriod(d) {
     setDays(d);
-    setError(null);
     try {
       await loadCharts(d);
-    } catch (err) { setError(err.message); }
+    } catch (err) {
+      setError(err.message);
+      toast(err.message || "Error al cargar el período", "error");
+    }
   }
 
   const occData = occupancy?.data || [];
@@ -98,43 +119,23 @@ export default function ReportsPage() {
     : 0;
 
   return (
-    <div>
-      <div className="flex items-end justify-between mb-8 flex-wrap gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-slate-900" style={{ fontFamily: "var(--font-display)" }}>Reportes y Analíticas</h1>
-          <p className="text-slate-500 mt-1">Rendimiento del hotel en tiempo real</p>
-        </div>
-        <div className="flex items-center bg-white rounded-lg border border-slate-200 p-1">
-          {PERIODS.map(p => (
-            <button
-              key={p.days}
-              onClick={() => handlePeriod(p.days)}
-              disabled={loading}
-              className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${days === p.days ? "bg-brand-600 text-white" : "text-slate-600 hover:bg-slate-50"}`}
-            >
-              {p.label}
-            </button>
-          ))}
-        </div>
-      </div>
+    <div className="animate-fade-in">
+      <PageHeader
+        title="Reportes"
+        subtitle="Rendimiento del hotel en tiempo real"
+        actions={
+          <FilterPills
+            options={PERIODS.map(p => ({ value: p.days, label: p.label }))}
+            value={days}
+            onChange={handlePeriod}
+          />
+        }
+      />
 
-      {error && <div className="bg-rose-50 border border-rose-200 text-rose-700 px-4 py-3 rounded-lg text-sm mb-6">{error}</div>}
-
-      {loading ? (
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-            {[...Array(4)].map((_, i) => (
-              <div key={i} className="bg-white rounded-xl border border-slate-200 p-6 animate-pulse">
-                <div className="h-3 w-24 bg-slate-100 rounded mb-4" />
-                <div className="h-7 w-20 bg-slate-100 rounded" />
-              </div>
-            ))}
-          </div>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-            <div className="bg-white rounded-xl border border-slate-200 p-6 h-72 animate-pulse" />
-            <div className="bg-white rounded-xl border border-slate-200 p-6 h-72 animate-pulse" />
-          </div>
-        </div>
+      {error && !loading ? (
+        <ErrorState message={error} onRetry={loadAll} />
+      ) : loading ? (
+        <LoadingState label="Cargando reportes..." />
       ) : (
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
@@ -169,113 +170,121 @@ export default function ReportsPage() {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-8">
-            <div className="bg-white rounded-xl border border-slate-200 p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-lg font-semibold text-slate-900" style={{ fontFamily: "var(--font-display)" }}>
-                  Ocupación ({days} días)
-                </h2>
-                <div className="text-right">
-                  <p className="text-sm font-bold text-brand-600">{Number(occupancy?.average || 0).toFixed(1)}%</p>
-                  <p className="text-xs text-slate-400">promedio</p>
-                </div>
-              </div>
-              <div className="space-y-3 max-h-96 overflow-y-auto pr-1">
-                {occData.map(item => (
-                  <div key={item.date} className="flex items-center gap-3">
-                    <span className="w-14 text-xs text-slate-400 shrink-0">{formatDate(item.date)}</span>
-                    <div className="flex-1 h-2.5 bg-slate-100 rounded-full overflow-hidden">
-                      <div
-                        className="h-full rounded-full transition-all duration-300"
-                        style={{
-                          width: `${Math.min(item.occupancy_rate || 0, 100)}%`,
-                          backgroundColor: item.occupancy_rate >= 80 ? "#10b981" : item.occupancy_rate >= 50 ? "#1a6bf5" : "#f59e0b",
-                        }}
-                      />
-                    </div>
-                    <span className="w-12 text-right text-xs font-medium text-slate-600 shrink-0">{Number(item.occupancy_rate || 0).toFixed(0)}%</span>
+            <Card>
+              <CardHeader
+                title={`Ocupación (${days} días)`}
+                action={
+                  <div className="text-right">
+                    <p className="text-sm font-bold text-brand-600 dark:text-brand-400">{Number(occupancy?.average || 0).toFixed(1)}%</p>
+                    <p className="text-xs text-slate-400 dark:text-slate-500">promedio</p>
                   </div>
-                ))}
-                {occData.length === 0 && <p className="text-sm text-slate-400 py-8 text-center">Sin datos de ocupación</p>}
-              </div>
-            </div>
-
-            <div className="bg-white rounded-xl border border-slate-200 p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-lg font-semibold text-slate-900" style={{ fontFamily: "var(--font-display)" }}>
-                  Ingresos por Día ({days} días)
-                </h2>
-                <span className="text-xs text-slate-400">pasa el cursor sobre las barras</span>
-              </div>
-              <div className="flex items-end gap-1 h-44">
-                {revData.map((item, i) => (
-                  <div
-                    key={item.date}
-                    className="flex-1 h-full flex flex-col justify-end min-w-[4px]"
-                    title={`${formatDate(item.date)}: ${money(item.revenue_cents)} · ${item.reservations} reserva${item.reservations !== 1 ? "s" : ""}`}
-                  >
-                    <div
-                      className="w-full bg-brand-500 hover:bg-brand-600 rounded-t transition-colors duration-150"
-                      style={{ height: `${Math.max((item.revenue_cents / maxRevenue) * 100, 2)}%`, opacity: i % labelEvery === 0 ? 1 : 0.75 }}
-                    />
-                  </div>
-                ))}
-                {revData.length === 0 && <p className="text-sm text-slate-400 w-full text-center py-16">Sin datos de ingresos</p>}
-              </div>
-              <div className="flex justify-between mt-2 pl-1 pr-1">
-                {revData.filter((_, i) => i % labelEvery === 0).map(item => (
-                  <span key={item.date} className="text-[10px] text-slate-400">{formatDate(item.date)}</span>
-                ))}
-              </div>
-              <div className="flex items-center justify-between mt-6 pt-4 border-t border-slate-100">
-                <div>
-                  <p className="text-xs text-slate-400">Total del período</p>
-                  <p className="text-xl font-bold text-slate-900">{money(revenue?.total_cents)}</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-xs text-slate-400">Promedio diario</p>
-                  <p className="text-xl font-bold text-brand-600">{money(revenue?.average_cents)}</p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-xl border border-slate-200 p-6">
-            <h2 className="text-lg font-semibold text-slate-900 mb-6" style={{ fontFamily: "var(--font-display)" }}>Estadísticas de Huéspedes</h2>
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-5">
-              <div className="p-5 rounded-lg bg-slate-50">
-                <p className="text-xs font-medium text-slate-500">Total Huéspedes</p>
-                <p className="text-3xl font-bold text-slate-900 mt-2">{guestStats?.total_guests ?? 0}</p>
-                <p className="text-xs text-slate-400 mt-1">registrados históricamente</p>
-              </div>
-              <div className="p-5 rounded-lg bg-slate-50">
-                <p className="text-xs font-medium text-slate-500">Huéspedes Recurrentes</p>
-                <p className="text-3xl font-bold text-emerald-600 mt-2">{returningPct}%</p>
-                <p className="text-xs text-slate-400 mt-1">{guestStats?.returning_guests ?? 0} volvieron al hotel</p>
-              </div>
-              <div className="p-5 rounded-lg bg-slate-50">
-                <p className="text-xs font-medium text-slate-500">Estancia Promedio</p>
-                <p className="text-3xl font-bold text-slate-900 mt-2">{Number(guestStats?.avg_stay_nights || 0).toFixed(1)}</p>
-                <p className="text-xs text-slate-400 mt-1">noches por huésped</p>
-              </div>
-              <div className="p-5 rounded-lg bg-brand-600 text-white">
-                <p className="text-xs font-medium text-blue-100">Top Países</p>
-                <div className="mt-2 space-y-2">
-                  {(guestStats?.top_countries || []).slice(0, 4).map(c => (
-                    <div key={c.country}>
-                      <div className="flex justify-between text-xs">
-                        <span>{c.country}</span>
-                        <span className="font-semibold">{c.count}</span>
+                }
+              />
+              <CardContent>
+                <div className="space-y-3 max-h-96 overflow-y-auto pr-1">
+                  {occData.map(item => (
+                    <div key={item.date} className="flex items-center gap-3">
+                      <span className="w-14 text-xs text-slate-400 dark:text-slate-500 shrink-0">{formatDate(item.date)}</span>
+                      <div className="flex-1 h-2.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                        <div
+                          className="h-full rounded-full transition-all duration-300"
+                          style={{
+                            width: `${Math.min(item.occupancy_rate || 0, 100)}%`,
+                            backgroundColor: item.occupancy_rate >= 80 ? "#10b981" : item.occupancy_rate >= 50 ? "#1a6bf5" : "#f59e0b",
+                          }}
+                        />
                       </div>
-                      <div className="mt-1 h-1 bg-white/20 rounded-full overflow-hidden">
-                        <div className="h-full bg-white rounded-full" style={{ width: `${(c.count / maxCountry) * 100}%` }} />
-                      </div>
+                      <span className="w-12 text-right text-xs font-medium text-slate-600 dark:text-slate-300 shrink-0">{Number(item.occupancy_rate || 0).toFixed(0)}%</span>
                     </div>
                   ))}
-                  {(guestStats?.top_countries || []).length === 0 && <p className="text-xs text-blue-100 py-2">Sin datos</p>}
+                  {occData.length === 0 && (
+                    <EmptyState compact title="Sin datos de ocupación" description="No hay registros para el período seleccionado" />
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader
+                title={`Ingresos por Día (${days} días)`}
+                action={<span className="text-xs text-slate-400 dark:text-slate-500">pasa el cursor sobre las barras</span>}
+              />
+              <CardContent>
+                <div className="flex items-end gap-1 h-44">
+                  {revData.map((item, i) => (
+                    <div
+                      key={item.date}
+                      className="flex-1 h-full flex flex-col justify-end min-w-[4px]"
+                      title={`${formatDate(item.date)}: ${money(item.revenue_cents)} · ${item.reservations} reserva${item.reservations !== 1 ? "s" : ""}`}
+                    >
+                      <div
+                        className="w-full bg-brand-500 hover:bg-brand-600 rounded-t transition-colors duration-150"
+                        style={{ height: `${Math.max((item.revenue_cents / maxRevenue) * 100, 2)}%`, opacity: i % labelEvery === 0 ? 1 : 0.75 }}
+                      />
+                    </div>
+                  ))}
+                  {revData.length === 0 && (
+                    <EmptyState compact title="Sin datos de ingresos" description="No hay ventas registradas en el período" />
+                  )}
+                </div>
+                <div className="flex justify-between mt-2 pl-1 pr-1">
+                  {revData.filter((_, i) => i % labelEvery === 0).map(item => (
+                    <span key={item.date} className="text-[10px] text-slate-400 dark:text-slate-500">{formatDate(item.date)}</span>
+                  ))}
+                </div>
+                <div className="flex items-center justify-between mt-6 pt-4 border-t border-slate-100 dark:border-slate-800">
+                  <div>
+                    <p className="text-xs text-slate-400 dark:text-slate-500">Total del período</p>
+                    <p className="text-xl font-bold text-slate-900 dark:text-slate-100">{money(revenue?.total_cents)}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xs text-slate-400 dark:text-slate-500">Promedio diario</p>
+                    <p className="text-xl font-bold text-brand-600 dark:text-brand-400">{money(revenue?.average_cents)}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          <Card>
+            <CardHeader title="Estadísticas de Huéspedes" />
+            <CardContent>
+              <div className="grid grid-cols-1 lg:grid-cols-4 gap-5">
+                <div className="p-5 rounded-lg bg-slate-50 dark:bg-slate-800/50">
+                  <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Total Huéspedes</p>
+                  <p className="text-3xl font-bold text-slate-900 dark:text-slate-100 mt-2">{guestStats?.total_guests ?? 0}</p>
+                  <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">registrados históricamente</p>
+                </div>
+                <div className="p-5 rounded-lg bg-slate-50 dark:bg-slate-800/50">
+                  <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Huéspedes Recurrentes</p>
+                  <p className="text-3xl font-bold text-emerald-600 dark:text-emerald-400 mt-2">{returningPct}%</p>
+                  <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">{guestStats?.returning_guests ?? 0} volvieron al hotel</p>
+                </div>
+                <div className="p-5 rounded-lg bg-slate-50 dark:bg-slate-800/50">
+                  <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Estancia Promedio</p>
+                  <p className="text-3xl font-bold text-slate-900 dark:text-slate-100 mt-2">{Number(guestStats?.avg_stay_nights || 0).toFixed(1)}</p>
+                  <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">noches por huésped</p>
+                </div>
+                <div className="p-5 rounded-lg bg-brand-600 text-white">
+                  <p className="text-xs font-medium text-blue-100">Top Países</p>
+                  <div className="mt-2 space-y-2">
+                    {(guestStats?.top_countries || []).slice(0, 4).map(c => (
+                      <div key={c.country}>
+                        <div className="flex justify-between text-xs">
+                          <span>{c.country}</span>
+                          <span className="font-semibold">{c.count}</span>
+                        </div>
+                        <div className="mt-1 h-1 bg-white/20 rounded-full overflow-hidden">
+                          <div className="h-full bg-white rounded-full" style={{ width: `${(c.count / maxCountry) * 100}%` }} />
+                        </div>
+                      </div>
+                    ))}
+                    {(guestStats?.top_countries || []).length === 0 && <p className="text-xs text-blue-100 py-2">Sin datos</p>}
+                  </div>
                 </div>
               </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         </>
       )}
     </div>
