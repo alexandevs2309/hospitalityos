@@ -99,6 +99,12 @@ function SidebarContent({ onLinkClick }) {
 
 function AppLayout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const pathname = usePathname();
+  const isAuth = pathname === "/login";
+
+  if (isAuth) {
+    return <>{children}</>;
+  }
 
   return (
     <div className="flex min-h-screen bg-[#f5f7fa] dark:bg-[#0f1219] transition-colors duration-200">
