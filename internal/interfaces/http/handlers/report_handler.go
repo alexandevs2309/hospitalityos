@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"math"
 	"net/http"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -78,27 +79,32 @@ func (h *ReportHandler) Occupancy(w http.ResponseWriter, r *http.Request) {
 		date = currentDate()
 	}
 
-	var totalRooms, occupied, outOfOrder, arrivals, departures, inHouse int
-
+	var totalRooms, outOfOrder int
 	h.pool.QueryRow(ctx,
-		`SELECT COUNT(*) FROM rooms WHERE tenant_id = $1 AND status != 'out_of_order'`, tenantID).Scan(&totalRooms)
+		`SELECT COUNT(*) FROM rooms WHERE tenant_id = $1`, tenantID).Scan(&totalRooms)
 	h.pool.QueryRow(ctx,
 		`SELECT COUNT(*) FROM rooms WHERE tenant_id = $1 AND status = 'out_of_order'`, tenantID).Scan(&outOfOrder)
+
+	var occupied int
+	h.pool.QueryRow(ctx, `
+		SELECT COUNT(DISTINCT room_id) FROM reservations
+		WHERE tenant_id = $1 AND status = 'checked_in'
+		  AND check_in <= $2::date AND check_out > $2::date
+	`, tenantID, date).Scan(&occupied)
+
+	var arrivals, departures int
 	h.pool.QueryRow(ctx,
-		`SELECT COUNT(*) FROM reservations WHERE tenant_id = $1 AND status = 'checked_in'`, tenantID).Scan(&inHouse)
-	h.pool.QueryRow(ctx,
-		`SELECT COUNT(*) FROM reservations WHERE tenant_id = $1 AND check_in = $2 AND status IN ('confirmed', 'pending')`,
+		`SELECT COUNT(*) FROM reservations WHERE tenant_id = $1 AND check_in = $2::date AND status IN ('confirmed', 'pending')`,
 		tenantID, date).Scan(&arrivals)
 	h.pool.QueryRow(ctx,
-		`SELECT COUNT(*) FROM reservations WHERE tenant_id = $1 AND check_out = $2 AND status = 'checked_in'`,
+		`SELECT COUNT(*) FROM reservations WHERE tenant_id = $1 AND check_out = $2::date AND status IN ('checked_in', 'checked_out')`,
 		tenantID, date).Scan(&departures)
 
-	occupied = inHouse
-	available := totalRooms - occupied - outOfOrder
-
+	sellable := totalRooms - outOfOrder
+	available := sellable - occupied
 	var occupancyRate float64
-	if totalRooms > 0 {
-		occupancyRate = float64(occupied) / float64(totalRooms) * 100
+	if sellable > 0 {
+		occupancyRate = float64(occupied) / float64(sellable) * 100
 	}
 
 	httputil.JSON(w, http.StatusOK, OccupancyReport{
@@ -107,10 +113,10 @@ func (h *ReportHandler) Occupancy(w http.ResponseWriter, r *http.Request) {
 		Occupied:      occupied,
 		Available:     available,
 		OutOfOrder:   outOfOrder,
-		OccupancyRate: occupancyRate,
+		OccupancyRate: math.Round(occupancyRate*100) / 100,
 		Arrivals:      arrivals,
 		Departures:    departures,
-		InHouse:       inHouse,
+		InHouse:       occupied,
 	})
 }
 
@@ -132,12 +138,11 @@ func (h *ReportHandler) Revenue(w http.ResponseWriter, r *http.Request) {
 		endDate = "2099-12-31"
 	}
 
-	var totalRevenue, totalPayments, outstandingBal int64
-	var totalRooms, occupiedDays int
-
+	var totalRooms int
 	h.pool.QueryRow(ctx,
 		`SELECT COUNT(*) FROM rooms WHERE tenant_id = $1`, tenantID).Scan(&totalRooms)
 
+	var totalRevenue, totalPayments int64
 	h.pool.QueryRow(ctx, `
 		SELECT COALESCE(SUM(amount_cents), 0)
 		FROM folio_entries WHERE tenant_id = $1 AND type IN ('charge', 'transfer')
@@ -150,14 +155,20 @@ func (h *ReportHandler) Revenue(w http.ResponseWriter, r *http.Request) {
 		AND created_at::date BETWEEN $2::date AND $3::date
 	`, tenantID, startDate, endDate).Scan(&totalPayments)
 
-	h.pool.QueryRow(ctx,
-		`SELECT COUNT(*) FROM reservations WHERE tenant_id = $1 AND status = 'checked_in'`, tenantID).Scan(&occupiedDays)
+	var roomNightsSold int
+	h.pool.QueryRow(ctx, `
+		SELECT COALESCE(SUM(
+			LEAST(check_out, $3::date) - GREATEST(check_in, $2::date)
+		), 0)
+		FROM reservations WHERE tenant_id = $1 AND status IN ('checked_in', 'checked_out')
+		  AND check_in <= $3::date AND check_out > $2::date
+	`, tenantID, startDate, endDate).Scan(&roomNightsSold)
 
-	outstandingBal = totalRevenue - totalPayments
+	outstandingBal := totalRevenue - totalPayments
 
 	var adr, revpar int64
-	if occupiedDays > 0 {
-		adr = totalRevenue / int64(occupiedDays)
+	if roomNightsSold > 0 {
+		adr = totalRevenue / int64(roomNightsSold)
 	}
 	if totalRooms > 0 {
 		revpar = totalRevenue / int64(totalRooms)
@@ -184,14 +195,15 @@ func (h *ReportHandler) GuestStats(w http.ResponseWriter, r *http.Request) {
 
 	ctx := r.Context()
 
-	var totalGuests, newGuests int
+	var totalGuests int
 	h.pool.QueryRow(ctx,
 		`SELECT COUNT(*) FROM guests WHERE tenant_id = $1`, tenantID).Scan(&totalGuests)
 
+	var newGuests int
 	h.pool.QueryRow(ctx, `
-		SELECT COUNT(DISTINCT g.id) FROM guests g
-		JOIN reservations res ON res.guest_id = g.id AND res.tenant_id = g.tenant_id
-		WHERE g.tenant_id = $1 AND res.status = 'checked_in'
+		SELECT COUNT(*) FROM guests g
+		WHERE g.tenant_id = $1
+		  AND (SELECT COUNT(*) FROM reservations res WHERE res.guest_id = g.id AND res.tenant_id = g.tenant_id) = 1
 	`, tenantID).Scan(&newGuests)
 
 	returningGuests := totalGuests - newGuests

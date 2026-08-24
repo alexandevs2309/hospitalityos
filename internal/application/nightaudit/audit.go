@@ -7,33 +7,17 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/hospitalityos/internal/domain/folio"
 )
 
 type Engine struct {
-	pool      *pgxpool.Pool
-	folioRepo *folioRepository
-}
-
-type folioRepository struct {
 	pool *pgxpool.Pool
 }
 
-func (r *folioRepository) AddEntry(ctx context.Context, entry folio.Entry) error {
-	_, err := r.pool.Exec(ctx, `
-		INSERT INTO folio_entries (id, tenant_id, reservation_id, type, description, amount_cents, currency, reference, metadata, created_by, created_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-	`, entry.ID, entry.TenantID, entry.ReservationID, entry.Type, entry.Description,
-		entry.AmountCents, entry.Currency, entry.Reference, entry.Metadata, entry.CreatedBy, entry.CreatedAt)
-	return err
-}
-
 func NewEngine(pool *pgxpool.Pool) *Engine {
-	return &Engine{
-		pool:      pool,
-		folioRepo: &folioRepository{pool: pool},
-	}
+	return &Engine{pool: pool}
 }
 
 type AuditResult struct {
@@ -60,8 +44,20 @@ type AuditRun struct {
 }
 
 func (e *Engine) Run(ctx context.Context, tenantID, runDate string, createdBy string) (*AuditResult, error) {
+	conn, err := e.pool.Acquire(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to acquire connection: %w", err)
+	}
+	defer conn.Release()
+
+	tx, err := conn.BeginTx(ctx, pgx.TxOptions{IsoLevel: pgx.Serializable})
+	if err != nil {
+		return nil, fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
 	var exists bool
-	err := e.pool.QueryRow(ctx,
+	err = tx.QueryRow(ctx,
 		`SELECT EXISTS(SELECT 1 FROM night_audit_runs WHERE tenant_id = $1 AND run_date = $2)`,
 		tenantID, runDate).Scan(&exists)
 	if err != nil {
@@ -71,7 +67,7 @@ func (e *Engine) Run(ctx context.Context, tenantID, runDate string, createdBy st
 		return nil, fmt.Errorf("night audit already run for %s on %s", tenantID, runDate)
 	}
 
-	rows, err := e.pool.Query(ctx, `
+	rows, err := tx.Query(ctx, `
 		SELECT res.id, res.room_id, res.rate_id, res.total_cents, res.currency,
 		       COALESCE(r.amount_cents, 0) as rate_amount
 		FROM reservations res
@@ -86,12 +82,12 @@ func (e *Engine) Run(ctx context.Context, tenantID, runDate string, createdBy st
 	defer rows.Close()
 
 	type reservationInfo struct {
-		ID          string
-		RoomID      string
-		RateID      string
-		TotalCents  int64
-		Currency    string
-		RateAmount  int64
+		ID         string
+		RoomID     string
+		RateID     string
+		TotalCents int64
+		Currency   string
+		RateAmount int64
 	}
 
 	var reservations []reservationInfo
@@ -102,6 +98,9 @@ func (e *Engine) Run(ctx context.Context, tenantID, runDate string, createdBy st
 		}
 		reservations = append(reservations, r)
 	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating reservations: %w", err)
+	}
 
 	var totalCharges int64
 	for _, res := range reservations {
@@ -110,32 +109,33 @@ func (e *Engine) Run(ctx context.Context, tenantID, runDate string, createdBy st
 			chargeAmount = res.TotalCents
 		}
 
-		entry := folio.Entry{
-			ID:            generateID(),
-			TenantID:      tenantID,
-			ReservationID: res.ID,
-			Type:          folio.EntryTypeCharge,
-			Description:   fmt.Sprintf("Nightly charge for %s", runDate),
-			AmountCents:   chargeAmount,
-			Currency:      res.Currency,
-			Reference:     fmt.Sprintf("night-audit-%s", runDate),
-			CreatedBy:     "night-audit",
-			CreatedAt:     time.Now(),
-		}
-
-		if err := e.folioRepo.AddEntry(ctx, entry); err != nil {
+		entryID := generateID()
+		_, err := tx.Exec(ctx, `
+			INSERT INTO folio_entries (id, tenant_id, reservation_id, type, description, amount_cents, currency, reference, metadata, created_by, created_at)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+			ON CONFLICT (reference, reservation_id) DO NOTHING
+		`, entryID, tenantID, res.ID, folio.EntryTypeCharge,
+			fmt.Sprintf("Nightly charge for %s", runDate),
+			chargeAmount, res.Currency,
+			fmt.Sprintf("night-audit-%s", runDate),
+			"{}", "night-audit", time.Now())
+		if err != nil {
 			return nil, fmt.Errorf("failed to post charge for reservation %s: %w", res.ID, err)
 		}
 		totalCharges += chargeAmount
 	}
 
 	runID := generateID()
-	_, err = e.pool.Exec(ctx, `
-		INSERT INTO night_audit_runs (id, tenant_id, run_date, reservations_processed, charges_posted, total_revenue, status, completed_at, created_by)
-		VALUES ($1, $2, $3, $4, $5, $5, 'completed', NOW(), $6)
+	_, err = tx.Exec(ctx, `
+		INSERT INTO night_audit_runs (id, tenant_id, run_date, reservations_processed, charges_posted, total_revenue, status, started_at, completed_at, created_by)
+		VALUES ($1, $2, $3, $4, $5, $5, 'completed', NOW(), NOW(), $6)
 	`, runID, tenantID, runDate, len(reservations), totalCharges, createdBy)
 	if err != nil {
 		return nil, fmt.Errorf("failed to record audit run: %w", err)
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return nil, fmt.Errorf("failed to commit night audit: %w", err)
 	}
 
 	return &AuditResult{

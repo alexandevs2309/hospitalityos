@@ -38,6 +38,7 @@ func TestCreateAndCancelReservation(t *testing.T) {
 
 	cancelCmd := app.CancelReservationCommand{
 		ReservationID: "app-test-1",
+		TenantID:      "tenant-1",
 	}
 	if err := cancelHandler.Handle(ctx, cancelCmd); err != nil {
 		t.Fatalf("cancel failed: %v", err)

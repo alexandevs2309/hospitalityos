@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/hospitalityos/internal/domain/folio"
 	"github.com/hospitalityos/internal/infrastructure/postgres"
@@ -178,9 +179,23 @@ func (h *FolioHandler) CloseFolio(w http.ResponseWriter, r *http.Request) {
 	tenantID := httputil.ExtractTenantID(r)
 	ctx := r.Context()
 
+	conn, err := h.pool.Acquire(ctx)
+	if err != nil {
+		httputil.InternalServerError(w, "database error")
+		return
+	}
+	defer conn.Release()
+
+	tx, err := conn.BeginTx(ctx, pgx.TxOptions{})
+	if err != nil {
+		httputil.InternalServerError(w, "transaction error")
+		return
+	}
+	defer tx.Rollback(ctx)
+
 	var resStatus string
-	err := h.pool.QueryRow(ctx,
-		`SELECT status FROM reservations WHERE id = $1 AND tenant_id = $2`,
+	err = tx.QueryRow(ctx,
+		`SELECT status FROM reservations WHERE id = $1 AND tenant_id = $2 FOR UPDATE`,
 		reservationID, tenantID).Scan(&resStatus)
 	if err != nil {
 		httputil.NotFound(w, "reservation not found")
@@ -192,7 +207,16 @@ func (h *FolioHandler) CloseFolio(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	balance, err := h.repo.GetBalance(ctx, tenantID, reservationID)
+	var balance int64
+	err = tx.QueryRow(ctx, `
+		SELECT COALESCE(SUM(
+			CASE WHEN type IN ('charge', 'transfer') THEN amount_cents
+			     WHEN type IN ('payment', 'refund', 'deposit') THEN -amount_cents
+			     ELSE 0 END
+		), 0)
+		FROM folio_entries
+		WHERE tenant_id = $1 AND reservation_id = $2
+	`, tenantID, reservationID).Scan(&balance)
 	if err != nil {
 		httputil.InternalServerError(w, "failed to calculate balance")
 		return
@@ -203,11 +227,16 @@ func (h *FolioHandler) CloseFolio(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = h.pool.Exec(ctx,
+	_, err = tx.Exec(ctx,
 		`UPDATE reservations SET status = 'checked_out', updated_at = NOW() WHERE id = $1 AND tenant_id = $2`,
 		reservationID, tenantID)
 	if err != nil {
 		httputil.InternalServerError(w, "failed to close folio")
+		return
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		httputil.InternalServerError(w, "failed to commit folio close")
 		return
 	}
 

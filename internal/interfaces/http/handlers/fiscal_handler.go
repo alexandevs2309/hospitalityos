@@ -12,20 +12,16 @@ import (
 )
 
 type FiscalHandler struct {
-	pool      *pgxpool.Pool
-	ncfGen    *fiscal.NCFGenerator
+	pool       *pgxpool.Pool
+	ncfStore   *fiscal.NCFStore
 	calculator *fiscal.TaxCalculator
-	dgii      *fiscal.DGIClient
+	dgii       *fiscal.DGIClient
 }
 
 func NewFiscalHandler(pool *pgxpool.Pool, dgiiAPIKey string) *FiscalHandler {
-	ncfGen := fiscal.NewNCFGenerator()
-	ncfGen.RegisterSequence(fiscal.NCFTypeNormal, "", 1, 99999999)
-	ncfGen.RegisterSequence(fiscal.NCFTypeCreditoFiscal, "", 1, 99999999)
-
 	return &FiscalHandler{
 		pool:       pool,
-		ncfGen:     ncfGen,
+		ncfStore:   fiscal.NewNCFStore(pool),
 		calculator: fiscal.NewTaxCalculator(),
 		dgii:       fiscal.NewDGIClient(dgiiAPIKey),
 	}
@@ -107,7 +103,7 @@ func (h *FiscalHandler) IssueReceipt(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ncf, err := h.ncfGen.NextNCF(ncfType)
+	ncf, err := h.ncfStore.NextNCF(ctx, tenantID, ncfType)
 	if err != nil {
 		httputil.InternalServerError(w, "NCF generation failed: "+err.Error())
 		return

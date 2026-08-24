@@ -1,9 +1,14 @@
 package handlers
 
 import (
+	"context"
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"io"
 	"net/http"
+	"os"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/hospitalityos/internal/infrastructure/whatsapp"
@@ -32,7 +37,12 @@ func (h *WhatsAppHandler) VerifyWebhook(w http.ResponseWriter, r *http.Request) 
 	token := r.URL.Query().Get("hub.verify_token")
 	challenge := r.URL.Query().Get("hub.challenge")
 
-	if mode == "subscribe" && token == "hospitalityos_webhook_token" {
+	expectedToken := os.Getenv("WHATSAPP_VERIFY_TOKEN")
+	if expectedToken == "" {
+		expectedToken = "hospitalityos_webhook_token"
+	}
+
+	if mode == "subscribe" && token == expectedToken {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(challenge))
 		return
@@ -49,6 +59,15 @@ func (h *WhatsAppHandler) HandleWebhook(w http.ResponseWriter, r *http.Request) 
 	}
 	defer r.Body.Close()
 
+	appSecret := os.Getenv("WHATSAPP_APP_SECRET")
+	if appSecret != "" {
+		sig := r.Header.Get("X-Hub-Signature-256")
+		if !verifyWebhookSignature(appSecret, sig, body) {
+			httputil.Unauthorized(w, "invalid webhook signature")
+			return
+		}
+	}
+
 	msg, err := h.client.ParseWebhook(body)
 	if err != nil {
 		httputil.BadRequest(w, "invalid webhook payload")
@@ -60,6 +79,8 @@ func (h *WhatsAppHandler) HandleWebhook(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	ctx := r.Context()
+
 	for _, entry := range msg.Entry {
 		for _, change := range entry.Changes {
 			if change.Field != "messages" {
@@ -67,11 +88,11 @@ func (h *WhatsAppHandler) HandleWebhook(w http.ResponseWriter, r *http.Request) 
 			}
 
 			for _, message := range change.Value.Messages {
-				h.processIncomingMessage(r, message.From, message.Text.Body, message.ID)
+				h.processIncomingMessage(ctx, message.From, message.Text.Body, message.ID)
 			}
 
 			for _, status := range change.Value.Statuses {
-				h.processStatusUpdate(status.ID, status.Status)
+				h.processStatusUpdate(ctx, status.ID, status.Status)
 			}
 		}
 	}
@@ -79,26 +100,41 @@ func (h *WhatsAppHandler) HandleWebhook(w http.ResponseWriter, r *http.Request) 
 	w.WriteHeader(http.StatusOK)
 }
 
-func (h *WhatsAppHandler) processIncomingMessage(r *http.Request, from, body, externalID string) {
-	ctx := r.Context()
+func (h *WhatsAppHandler) processIncomingMessage(ctx context.Context, from, body, externalID string) {
+	var tenantID, guestID, reservationID string
 
-	var guestID, reservationID string
 	h.pool.QueryRow(ctx,
-		`SELECT id FROM guests WHERE phone = $1 LIMIT 1`, from).Scan(&guestID)
+		`SELECT tenant_id FROM whatsapp_config WHERE phone_number_id = (
+			SELECT phone_number_id FROM whatsapp_business_accounts WHERE id IN (
+				SELECT whatsapp_account_id FROM whatsapp_config LIMIT 1
+			) LIMIT 1
+		) LIMIT 1`).Scan(&tenantID)
+
+	if tenantID == "" {
+		h.pool.QueryRow(ctx,
+			`SELECT tenant_id FROM guests WHERE phone = $1 LIMIT 1`, from).Scan(&tenantID)
+	}
+
+	if tenantID == "" {
+		tenantID = "eden-hotel"
+	}
+
+	h.pool.QueryRow(ctx,
+		`SELECT id FROM guests WHERE phone = $1 AND tenant_id = $2 LIMIT 1`, from, tenantID).Scan(&guestID)
 
 	if guestID != "" {
 		h.pool.QueryRow(ctx,
-			`SELECT id FROM reservations WHERE guest_id = $1 AND status IN ('confirmed','checked_in') ORDER BY created_at DESC LIMIT 1`,
-			guestID).Scan(&reservationID)
+			`SELECT id FROM reservations WHERE guest_id = $1 AND tenant_id = $2 AND status IN ('confirmed','checked_in') ORDER BY created_at DESC LIMIT 1`,
+			guestID, tenantID).Scan(&reservationID)
 	}
 
 	h.pool.Exec(ctx, `
 		INSERT INTO whatsapp_messages (id, tenant_id, reservation_id, guest_id, direction, from_number, to_number, content, external_id, status, created_at)
-		VALUES (gen_random_uuid(), 'eden-samana', $1, $2, 'inbound', $3, '', $4, $5, 'received', NOW())
-	`, reservationID, guestID, from, body, externalID)
+		VALUES (gen_random_uuid(), $1, $2, $3, 'inbound', $4, '', $5, $6, 'received', NOW())
+	`, tenantID, reservationID, guestID, from, body, externalID)
 }
 
-func (h *WhatsAppHandler) processStatusUpdate(externalID, status string) {
+func (h *WhatsAppHandler) processStatusUpdate(ctx context.Context, externalID, status string) {
 	var updateCol string
 	switch status {
 	case "sent":
@@ -111,7 +147,7 @@ func (h *WhatsAppHandler) processStatusUpdate(externalID, status string) {
 		return
 	}
 
-	h.pool.Exec(nil, `
+	h.pool.Exec(ctx, `
 		UPDATE whatsapp_messages SET status = $1, `+updateCol+` = NOW() WHERE external_id = $2
 	`, status, externalID)
 }
@@ -134,6 +170,8 @@ func (h *WhatsAppHandler) SendMessage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ctx := r.Context()
+	tenantID := httputil.ExtractTenantID(r)
+
 	var resp *whatsapp.MessageResponse
 	var err error
 
@@ -161,8 +199,8 @@ func (h *WhatsAppHandler) SendMessage(w http.ResponseWriter, r *http.Request) {
 
 	h.pool.Exec(ctx, `
 		INSERT INTO whatsapp_messages (id, tenant_id, reservation_id, direction, from_number, to_number, content, message_type, external_id, status, created_at, sent_at)
-		VALUES (gen_random_uuid(), 'eden-samana', $1, 'outbound', '', $2, $3, 'template', $4, 'sent', NOW(), NOW())
-	`, req.ReservationID, req.To, req.Message, msgID)
+		VALUES (gen_random_uuid(), $1, $2, 'outbound', '', $3, $4, 'template', $5, 'sent', NOW(), NOW())
+	`, tenantID, req.ReservationID, req.To, req.Message, msgID)
 
 	httputil.JSON(w, http.StatusOK, map[string]string{
 		"message_id": msgID,
@@ -222,4 +260,21 @@ func (h *WhatsAppHandler) ListMessages(w http.ResponseWriter, r *http.Request) {
 	}
 
 	httputil.JSON(w, http.StatusOK, map[string]interface{}{"messages": messages})
+}
+
+func verifyWebhookSignature(appSecret, signature string, body []byte) bool {
+	if signature == "" {
+		return false
+	}
+
+	sig, err := hex.DecodeString(signature[7:])
+	if err != nil {
+		return false
+	}
+
+	mac := hmac.New(sha256.New, []byte(appSecret))
+	mac.Write(body)
+	expected := mac.Sum(nil)
+
+	return hmac.Equal(sig, expected)
 }

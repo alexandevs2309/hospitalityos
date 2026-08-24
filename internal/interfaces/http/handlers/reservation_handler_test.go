@@ -56,7 +56,7 @@ func TestCreateReservationViaHTTP(t *testing.T) {
 	roomTypeHandler := handlers.NewRoomTypeHandler(nil)
 	rateHandler := handlers.NewRateHandler(nil)
 	availabilityHandler := handlers.NewAvailabilityHandler(nil)
-	router := httplib.NewRouter(reservationHandler, guestHandler, roomHandler, roomTypeHandler, rateHandler, availabilityHandler)
+	router := httplib.NewRouter(reservationHandler, guestHandler, roomHandler, roomTypeHandler, rateHandler, availabilityHandler, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
 	server := httptest.NewServer(router)
 	defer server.Close()
 

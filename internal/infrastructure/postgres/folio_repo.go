@@ -53,7 +53,7 @@ func (r *FolioRepository) GetBalance(ctx context.Context, tenantID, reservationI
 	err := r.pool.QueryRow(ctx, `
 		SELECT COALESCE(SUM(
 			CASE WHEN type IN ('charge', 'transfer') THEN amount_cents
-			     WHEN type IN ('payment', 'refund', 'deposit') THEN -amount_cents
+			     WHEN type IN ('payment', 'refund', 'deposit', 'adjustment') THEN -amount_cents
 			     ELSE 0 END
 		), 0)
 		FROM folio_entries
