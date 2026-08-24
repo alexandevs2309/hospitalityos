@@ -25,6 +25,7 @@ function StatCard({ label, value, sub, color, icon }) {
 
 export default function DashboardPage() {
   const [stats, setStats] = useState({ total: 0, available: 0, occupied: 0, cleaning: 0, maintenance: 0, reservations: 0, guests: 0 });
+  const [floorData, setFloorData] = useState([]);
 
   useEffect(() => {
     async function load() {
@@ -43,6 +44,19 @@ export default function DashboardPage() {
           reservations: res.filter((r) => r.status === "confirmed" || r.status === "checked_in").length,
           guests: guests.length,
         });
+        const floors = {};
+        rooms.forEach((r) => {
+          const f = r.floor || "1";
+          if (!floors[f]) floors[f] = { total: 0, occupied: 0 };
+          floors[f].total++;
+          if (r.status === "occupied") floors[f].occupied++;
+        });
+        setFloorData(Object.entries(floors).sort((a, b) => a[0].localeCompare(b[0])).map(([f, d]) => ({
+          floor: f,
+          total: d.total,
+          occupied: d.occupied,
+          pct: d.total > 0 ? Math.round((d.occupied / d.total) * 100) : 0,
+        })));
       } catch (e) { console.error(e); }
     }
     load();
@@ -68,17 +82,19 @@ export default function DashboardPage() {
         <div className="lg:col-span-2 bg-white rounded-xl border border-slate-200 p-6">
           <h2 className="text-lg font-semibold text-slate-900 mb-4" style={{ fontFamily: "var(--font-display)" }}>Ocupacion por Piso</h2>
           <div className="space-y-4">
-            {[1, 2].map((floor) => (
-              <div key={floor}>
+            {floorData.length > 0 ? floorData.map((f) => (
+              <div key={f.floor}>
                 <div className="flex justify-between text-sm mb-1">
-                  <span className="text-slate-600">Piso {floor}</span>
-                  <span className="text-slate-400">{stats.total > 0 ? Math.round(Math.random() * 100) : 0}%</span>
+                  <span className="text-slate-600">Piso {f.floor}</span>
+                  <span className="text-slate-400">{f.pct}%</span>
                 </div>
                 <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
-                  <div className="h-full bg-brand-500 rounded-full" style={{ width: `${30 + Math.random() * 60}%` }} />
+                  <div className="h-full bg-brand-500 rounded-full" style={{ width: `${f.pct}%` }} />
                 </div>
               </div>
-            ))}
+            )) : (
+              <p className="text-sm text-slate-400">Sin datos de pisos</p>
+            )}
           </div>
         </div>
 
