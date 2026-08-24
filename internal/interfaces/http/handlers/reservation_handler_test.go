@@ -50,7 +50,7 @@ func TestCreateReservationViaHTTP(t *testing.T) {
 	repo := newRepo()
 	createHandler := app.NewCreateReservationHandler(repo)
 	cancelHandler := app.NewCancelReservationHandler(repo)
-	reservationHandler := handlers.NewReservationHandler(createHandler, cancelHandler, nil)
+	reservationHandler := handlers.NewReservationHandler(createHandler, cancelHandler, nil, nil)
 	guestHandler := handlers.NewGuestHandler(nil, nil)
 	roomHandler := handlers.NewRoomHandler(nil)
 	roomTypeHandler := handlers.NewRoomTypeHandler(nil)

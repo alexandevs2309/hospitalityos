@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/hospitalityos/internal/application/availability"
 	"github.com/hospitalityos/internal/application/reservation"
 	guesta "github.com/hospitalityos/internal/application/guest"
 	"github.com/hospitalityos/internal/infrastructure/eventstore"
@@ -49,7 +50,8 @@ func main() {
 	reservationRepo := postgres.NewReservationRepository(pool, store)
 	createResHandler := reservation.NewCreateReservationHandler(reservationRepo)
 	cancelResHandler := reservation.NewCancelReservationHandler(reservationRepo)
-	reservationHandler := handlers.NewReservationHandler(createResHandler, cancelResHandler, pool)
+	availEngine := availability.NewEngine(pool)
+	reservationHandler := handlers.NewReservationHandler(createResHandler, cancelResHandler, availEngine, pool)
 
 	guestRepo := postgres.NewGuestRepository(pool, store)
 	createGuestHandler := guesta.NewCreateGuestHandler(guestRepo)

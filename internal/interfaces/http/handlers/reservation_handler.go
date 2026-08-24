@@ -7,22 +7,25 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/hospitalityos/internal/application/availability"
 	"github.com/hospitalityos/internal/application/reservation"
 	"github.com/hospitalityos/internal/interfaces/http/middleware"
 	"github.com/hospitalityos/pkg/httputil"
 )
 
 type ReservationHandler struct {
-	createHandler *reservation.CreateReservationHandler
-	cancelHandler *reservation.CancelReservationHandler
-	pool          *pgxpool.Pool
+	createHandler     *reservation.CreateReservationHandler
+	cancelHandler     *reservation.CancelReservationHandler
+	availability      *availability.Engine
+	pool              *pgxpool.Pool
 }
 
-func NewReservationHandler(create *reservation.CreateReservationHandler, cancel *reservation.CancelReservationHandler, pool *pgxpool.Pool) *ReservationHandler {
+func NewReservationHandler(create *reservation.CreateReservationHandler, cancel *reservation.CancelReservationHandler, avail *availability.Engine, pool *pgxpool.Pool) *ReservationHandler {
 	return &ReservationHandler{
-		createHandler: create,
-		cancelHandler: cancel,
-		pool:          pool,
+		createHandler:     create,
+		cancelHandler:     cancel,
+		availability:      avail,
+		pool:              pool,
 	}
 }
 
@@ -75,6 +78,19 @@ func (h *ReservationHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	tenantID := middleware.TenantFromContext(r.Context())
+
+	if h.availability != nil {
+		available, err := h.availability.IsRoomAvailable(r.Context(), tenantID, req.RoomID, checkIn, checkOut)
+		if err != nil {
+			httputil.InternalServerError(w, "failed to check availability")
+			return
+		}
+		if !available {
+			httputil.Conflict(w, "room is not available for the selected dates")
+			return
+		}
+	}
+
 	cmd := reservation.CreateReservationCommand{
 		ReservationID: req.ReservationID,
 		TenantID:      tenantID,

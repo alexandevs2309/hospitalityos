@@ -22,7 +22,7 @@ func main() {
 	}
 	defer pool.Close()
 
-	tenantID := "eden-samana"
+	tenantID := "eden-hotel"
 	start := time.Now()
 	end := start.Add(365 * 24 * time.Hour)
 
