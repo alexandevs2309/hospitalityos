@@ -351,3 +351,11 @@ export function validateRNC(rnc, tenantId) {
 export function getFiscalSummary(tenantId) {
   return request("/fiscal/summary", { tenantId });
 }
+
+export function createPaymentIntent(data, tenantId) {
+  return request("/payments/intent", {
+    method: "POST",
+    body: JSON.stringify(data),
+    tenantId,
+  });
+}

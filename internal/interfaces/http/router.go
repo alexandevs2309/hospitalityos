@@ -63,6 +63,13 @@ func NewRouter(
 			r.Post("/auth/seed-admin", authHandler.SeedAdmin)
 		})
 
+		// Public booking engine endpoints (no staff auth required, but tenant required)
+		r.Group(func(r chi.Router) {
+			r.Use(middleware.Tenant)
+			r.Post("/booking/reservations", reservationHandler.CreatePublic)
+			r.Post("/booking/payments/intent", paymentGatewayHandler.CreatePaymentIntent)
+		})
+
 		r.Group(func(r chi.Router) {
 			r.Use(middleware.Auth)
 			r.Use(middleware.Tenant)

@@ -33,6 +33,20 @@ type CreateReservationRequest struct {
 	ReservationID string `json:"reservation_id"`
 	GuestID       string `json:"guest_id"`
 	RoomID        string `json:"room_id"`
+	RoomTypeID    string `json:"room_type_id"`
+	RateID        string `json:"rate_id"`
+	CheckIn       string `json:"check_in"`
+	CheckOut      string `json:"check_out"`
+	Adults        int    `json:"adults"`
+	Children      int    `json:"children"`
+	TotalCents    int64  `json:"total_cents"`
+	Currency      string `json:"currency"`
+}
+
+type CreatePublicReservationRequest struct {
+	ReservationID string `json:"reservation_id"`
+	GuestID       string `json:"guest_id"`
+	RoomTypeID    string `json:"room_type_id"`
 	RateID        string `json:"rate_id"`
 	CheckIn       string `json:"check_in"`
 	CheckOut      string `json:"check_out"`
@@ -265,4 +279,89 @@ func (h *ReservationHandler) CheckOut(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	httputil.JSON(w, http.StatusOK, map[string]string{"status": "checked_out"})
+}
+
+func (h *ReservationHandler) CreatePublic(w http.ResponseWriter, r *http.Request) {
+	var req CreatePublicReservationRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		httputil.BadRequest(w, "invalid request body")
+		return
+	}
+
+	if req.ReservationID == "" || req.GuestID == "" || req.RoomTypeID == "" || req.CheckIn == "" || req.CheckOut == "" {
+		httputil.BadRequest(w, "reservation_id, guest_id, room_type_id, check_in, check_out required")
+		return
+	}
+	if req.Adults < 1 {
+		httputil.BadRequest(w, "at least 1 adult required")
+		return
+	}
+	if req.TotalCents <= 0 {
+		httputil.BadRequest(w, "total_cents must be positive")
+		return
+	}
+
+	checkIn, err := httputil.ParseDate(req.CheckIn)
+	if err != nil {
+		httputil.BadRequest(w, "invalid check_in format (YYYY-MM-DD)")
+		return
+	}
+	checkOut, err := httputil.ParseDate(req.CheckOut)
+	if err != nil {
+		httputil.BadRequest(w, "invalid check_out format (YYYY-MM-DD)")
+		return
+	}
+	if !checkOut.After(checkIn) {
+		httputil.BadRequest(w, "check_out must be after check_in")
+		return
+	}
+
+	tenantID := middleware.TenantFromContext(r.Context())
+
+	// Find an available room of the requested type
+	var roomID string
+	err = h.pool.QueryRow(r.Context(), `
+		SELECT id FROM rooms
+		WHERE tenant_id = $1 AND room_type_id = $2 AND status = 'available'
+		ORDER BY number
+		LIMIT 1
+	`, tenantID, req.RoomTypeID).Scan(&roomID)
+	if err != nil {
+		httputil.Conflict(w, "no available rooms of the selected type for these dates")
+		return
+	}
+
+	// Check availability for the specific room
+	if h.availability != nil {
+		available, err := h.availability.IsRoomAvailable(r.Context(), tenantID, roomID, checkIn, checkOut)
+		if err != nil {
+			httputil.InternalServerError(w, "failed to check availability")
+			return
+		}
+		if !available {
+			httputil.Conflict(w, "room is not available for the selected dates")
+			return
+		}
+	}
+
+	cmd := reservation.CreateReservationCommand{
+		ReservationID: req.ReservationID,
+		TenantID:      tenantID,
+		GuestID:       req.GuestID,
+		RoomID:        roomID,
+		RateID:        req.RateID,
+		CheckIn:       checkIn,
+		CheckOut:      checkOut,
+		Adults:        req.Adults,
+		Children:      req.Children,
+		TotalCents:    req.TotalCents,
+		Currency:      req.Currency,
+	}
+
+	if err := h.createHandler.Handle(r.Context(), cmd); err != nil {
+		httputil.Conflict(w, err.Error())
+		return
+	}
+
+	httputil.JSON(w, http.StatusCreated, map[string]string{"id": req.ReservationID, "room_id": roomID})
 }
