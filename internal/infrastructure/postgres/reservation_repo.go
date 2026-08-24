@@ -27,7 +27,7 @@ func (r *ReservationRepository) Save(ctx context.Context, res *reservation.Reser
 	if err := r.store.Save(streamID, events); err != nil {
 		return err
 	}
-	if err := r.project(ctx, res.ID(), events); err != nil {
+	if err := r.project(ctx, res.ID(), res.TenantID(), events); err != nil {
 		return err
 	}
 	res.ClearUncommitted()
@@ -45,7 +45,7 @@ func (r *ReservationRepository) Load(ctx context.Context, id string) (*reservati
 	return r2, nil
 }
 
-func (r *ReservationRepository) project(ctx context.Context, id string, events []es.Event) error {
+func (r *ReservationRepository) project(ctx context.Context, id, tenantID string, events []es.Event) error {
 	for _, event := range events {
 		switch event.Type {
 		case "ReservationCreated":
@@ -58,19 +58,19 @@ func (r *ReservationRepository) project(ctx context.Context, id string, events [
 			}
 		case "ReservationCanceled":
 			_, err := r.pool.Exec(ctx,
-				`UPDATE reservations SET status = 'canceled', updated_at = NOW() WHERE id = $1`, id)
+				`UPDATE reservations SET status = 'canceled', updated_at = NOW() WHERE id = $1 AND tenant_id = $2`, id, tenantID)
 			if err != nil {
 				return err
 			}
 		case "GuestCheckedIn":
 			_, err := r.pool.Exec(ctx,
-				`UPDATE reservations SET status = 'checked_in', updated_at = NOW() WHERE id = $1`, id)
+				`UPDATE reservations SET status = 'checked_in', updated_at = NOW() WHERE id = $1 AND tenant_id = $2`, id, tenantID)
 			if err != nil {
 				return err
 			}
 		case "GuestCheckedOut":
 			_, err := r.pool.Exec(ctx,
-				`UPDATE reservations SET status = 'checked_out', updated_at = NOW() WHERE id = $1`, id)
+				`UPDATE reservations SET status = 'checked_out', updated_at = NOW() WHERE id = $1 AND tenant_id = $2`, id, tenantID)
 			if err != nil {
 				return err
 			}

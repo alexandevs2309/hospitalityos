@@ -46,7 +46,7 @@ func (r *RoomRepository) Save(ctx context.Context, rm *room.Room) error {
 			if err := ev.FromEvent(event); err != nil {
 				return err
 			}
-			_, err := r.pool.Exec(ctx, `UPDATE rooms SET status=$1, updated_at=NOW() WHERE id=$2`, ev.NewStatus, rm.ID())
+			_, err := r.pool.Exec(ctx, `UPDATE rooms SET status=$1, updated_at=NOW() WHERE id=$2 AND tenant_id=$3`, ev.NewStatus, rm.ID(), rm.TenantID())
 			if err != nil {
 				return err
 			}

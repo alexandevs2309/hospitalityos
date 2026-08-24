@@ -26,7 +26,7 @@ func (r *GuestRepository) Save(ctx context.Context, g *guest.Guest) error {
 	if err := r.store.Save(streamID, events); err != nil {
 		return err
 	}
-	if err := r.project(ctx, g.ID(), events); err != nil {
+	if err := r.project(ctx, g.ID(), g.TenantID(), events); err != nil {
 		return err
 	}
 	g.ClearUncommitted()
@@ -43,7 +43,7 @@ func (r *GuestRepository) Load(ctx context.Context, id string) (*guest.Guest, er
 	return g, nil
 }
 
-func (r *GuestRepository) project(ctx context.Context, id string, events []es.Event) error {
+func (r *GuestRepository) project(ctx context.Context, id, tenantID string, events []es.Event) error {
 	for _, event := range events {
 		switch event.Type {
 		case "GuestCreated":
@@ -61,8 +61,8 @@ func (r *GuestRepository) project(ctx context.Context, id string, events []es.Ev
 			}
 			_, err := r.pool.Exec(ctx, `
 				UPDATE guests SET email = $1, phone = $2, first_name = $3, last_name = $4, updated_at = NOW()
-				WHERE id = $5
-			`, ev.Email, ev.Phone, ev.FirstName, ev.LastName, id)
+				WHERE id = $5 AND tenant_id = $6
+			`, ev.Email, ev.Phone, ev.FirstName, ev.LastName, id, tenantID)
 			if err != nil {
 				return err
 			}

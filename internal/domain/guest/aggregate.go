@@ -41,7 +41,8 @@ func NewGuest(id, tenantID, email, phone, firstName, lastName string) (*Guest, e
 	return g, nil
 }
 
-func (g *Guest) ID() string { return g.id }
+func (g *Guest) ID() string      { return g.id }
+func (g *Guest) TenantID() string { return g.tenantID }
 
 func (g *Guest) UpdateProfile(email, phone, firstName, lastName string) error {
 	if firstName == "" || lastName == "" {
