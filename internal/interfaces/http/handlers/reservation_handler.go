@@ -165,7 +165,7 @@ func (h *ReservationHandler) List(w http.ResponseWriter, r *http.Request) {
 
 	ctx := r.Context()
 	query := `
-		SELECT id, tenant_id, guest_id, room_id, rate_id, check_in, check_out, adults, children, total_cents, currency, status
+		SELECT id, tenant_id, guest_id, room_id, COALESCE(rate_id,''), check_in::text, check_out::text, adults, children, total_cents, COALESCE(currency,'USD'), status::text
 		FROM reservations WHERE tenant_id=$1
 	`
 	args := []interface{}{tenantID}
@@ -238,7 +238,7 @@ func (h *ReservationHandler) Get(w http.ResponseWriter, r *http.Request) {
 		Status     string `json:"status"`
 	}
 	err := h.pool.QueryRow(ctx,
-		`SELECT id, tenant_id, guest_id, room_id, rate_id, check_in, check_out, adults, children, total_cents, currency, status FROM reservations WHERE id=$1 AND tenant_id=$2`, id, tenantID).
+		`SELECT id, tenant_id, guest_id, room_id, COALESCE(rate_id,''), check_in::text, check_out::text, adults, children, total_cents, COALESCE(currency,'USD'), status::text FROM reservations WHERE id=$1 AND tenant_id=$2`, id, tenantID).
 		Scan(&res.ID, &res.TenantID, &res.GuestID, &res.RoomID, &res.RateID, &res.CheckIn, &res.CheckOut, &res.Adults, &res.Children, &res.TotalCents, &res.Currency, &res.Status)
 	if err != nil {
 		httputil.NotFound(w, "reservation not found")
