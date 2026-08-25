@@ -39,6 +39,8 @@ func NewRouter(
 	posHandler *handlers.POSHandler,
 	eventsHandler *handlers.EventsHandler,
 	revenueHandler *handlers.RevenueHandler,
+	tapeChartHandler *handlers.TapeChartHandler,
+	registerHandler *handlers.RegisterHandler,
 	pool *pgxpool.Pool,
 ) *chi.Mux {
 	r := chi.NewRouter()
@@ -66,6 +68,7 @@ func NewRouter(
 			r.Post("/auth/refresh", authHandler.Refresh)
 			r.Post("/auth/logout", authHandler.Logout)
 			r.Post("/auth/seed-admin", authHandler.SeedAdmin)
+			r.Post("/auth/register", registerHandler.Register)
 		})
 
 		// Public booking engine endpoints (no staff auth required, but tenant required)
@@ -196,9 +199,11 @@ func NewRouter(
 				r.Post("/events/block-dates", eventsHandler.BlockDates)
 				r.Get("/events/availability", eventsHandler.GetEventAvailability)
 
-				r.Get("/revenue/suggestions", revenueHandler.GetPricingSuggestions)
-				r.Get("/revenue/forecast", revenueHandler.GetRevenueForecast)
-				r.Post("/revenue/apply-price", revenueHandler.ApplySeasonPrice)
+			r.Get("/revenue/suggestions", revenueHandler.GetPricingSuggestions)
+			r.Get("/revenue/forecast", revenueHandler.GetRevenueForecast)
+			r.Post("/revenue/apply-price", revenueHandler.ApplySeasonPrice)
+
+			r.Get("/tapechart", tapeChartHandler.GetTapeChart)
 
 				r.Get("/i18n/translations", i18nHandler.GetTranslations)
 				r.Get("/i18n/languages", i18nHandler.GetLanguages)

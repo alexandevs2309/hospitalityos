@@ -506,3 +506,22 @@ export function applySeasonPrice(data, tenantId) {
     method: "POST", body: JSON.stringify(data), tenantId,
   });
 }
+
+export function getTapeChart(startDate, endDate, tenantId) {
+  const params = new URLSearchParams();
+  if (startDate) params.set("start_date", startDate);
+  if (endDate) params.set("end_date", endDate);
+  return request(`/tapechart?${params.toString()}`, { tenantId });
+}
+
+export function registerHotel(data) {
+  return fetch(`${API_BASE}/auth/register`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  }).then(async (res) => {
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.error || json.message || "Registration failed");
+    return json;
+  });
+}

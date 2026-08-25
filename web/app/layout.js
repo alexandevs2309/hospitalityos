@@ -39,6 +39,7 @@ import {
   PartyPopper,
   TrendingUp,
   Bell,
+  CalendarDays,
 } from "lucide-react";
 
 const navGroups = [
@@ -47,6 +48,7 @@ const navGroups = [
     items: [
       { href: "/", label: "Dashboard", icon: LayoutDashboard },
       { href: "/frontdesk", label: "Front Desk", icon: Hotel },
+      { href: "/tapechart", label: "Tape Chart", icon: CalendarDays },
       { href: "/rooms", label: "Habitaciones", icon: Home },
       { href: "/reservations", label: "Reservas", icon: Calendar },
       { href: "/availability", label: "Disponibilidad", icon: CalendarCheck },
@@ -95,6 +97,7 @@ const navGroups = [
 const pageTitles = {
   "/": "Dashboard",
   "/frontdesk": "Front Desk",
+  "/tapechart": "Tape Chart",
   "/rooms": "Habitaciones",
   "/reservations": "Reservas",
   "/availability": "Disponibilidad",

@@ -94,6 +94,8 @@ func main() {
 	posHandler := handlers.NewPOSHandler(pool)
 	eventsHandler := handlers.NewEventsHandler(pool)
 	revenueHandler := handlers.NewRevenueHandler(pool)
+	tapeChartHandler := handlers.NewTapeChartHandler(pool)
+	registerHandler := handlers.NewRegisterHandler(pool)
 
 	router := httplib.NewRouter(
 		reservationHandler,
@@ -125,6 +127,8 @@ func main() {
 		posHandler,
 		eventsHandler,
 		revenueHandler,
+		tapeChartHandler,
+		registerHandler,
 		pool,
 	)
 
