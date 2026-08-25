@@ -83,8 +83,13 @@ export default function FiscalPage() {
       setLoading(true);
       setError(null);
       const [r, s] = await Promise.all([listFiscalReceipts(TENANT), getFiscalSummary(TENANT)]);
-      setReceipts(r);
-      setSummary(s);
+      setReceipts(Array.isArray(r) ? r : r.receipts || []);
+      setSummary({
+        total_receipts: s.total_receipts || 0,
+        total_itbis_cents: s.itbis_cents || 0,
+        total_propina_cents: s.propina_cents || 0,
+        total_revenue_cents: s.total_cents || 0,
+      });
     } catch (e) {
       setError(e.message);
     } finally {

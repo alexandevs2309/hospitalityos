@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { listRooms, listReservations, listGuests } from "@/lib/api";
 import { Card, CardContent, Button, Skeleton, SkeletonCard, LoadingState, ErrorState } from "@/components/ui";
-import { Users, Home, Calendar, TrendingUp, DollarSign, CheckCircle, AlertTriangle, Activity } from "lucide-react";
+import { Users, Home, Calendar, TrendingUp, DollarSign, CheckCircle, AlertTriangle, Activity, Wrench } from "lucide-react";
 
 function MetricCard({ label, value, delta, colorClass, loading }) {
   if (loading) return <SkeletonCard />;

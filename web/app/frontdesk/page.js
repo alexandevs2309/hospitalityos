@@ -13,7 +13,7 @@ import {
   ErrorState,
   useToast,
 } from "@/components/ui";
-import { Building2, LogOut, Check, Home, Calendar, Users, Sparkles, Loader2 } from "lucide-react";
+import { Building2, LogOut, Check, Home, Calendar, Users, Sparkles, Loader2, Wrench } from "lucide-react";
 
 const roomStatusConfig = {
   available: { label: "Disponible", tone: "success" },

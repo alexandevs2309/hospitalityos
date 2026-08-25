@@ -68,6 +68,11 @@ func (h *WhatsAppHandler) HandleWebhook(w http.ResponseWriter, r *http.Request) 
 		}
 	}
 
+	if h.client == nil {
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
 	msg, err := h.client.ParseWebhook(body)
 	if err != nil {
 		httputil.BadRequest(w, "invalid webhook payload")
@@ -101,26 +106,15 @@ func (h *WhatsAppHandler) HandleWebhook(w http.ResponseWriter, r *http.Request) 
 }
 
 func (h *WhatsAppHandler) processIncomingMessage(ctx context.Context, from, body, externalID string) {
-	var tenantID, guestID, reservationID string
+	tenantID := "eden-hotel"
+	var guestID, reservationID string
 
 	h.pool.QueryRow(ctx,
-		`SELECT tenant_id FROM whatsapp_config WHERE phone_number_id = (
-			SELECT phone_number_id FROM whatsapp_business_accounts WHERE id IN (
-				SELECT whatsapp_account_id FROM whatsapp_config LIMIT 1
-			) LIMIT 1
-		) LIMIT 1`).Scan(&tenantID)
-
-	if tenantID == "" {
-		h.pool.QueryRow(ctx,
-			`SELECT tenant_id FROM guests WHERE phone = $1 LIMIT 1`, from).Scan(&tenantID)
-	}
+		`SELECT id, tenant_id FROM guests WHERE phone = $1 LIMIT 1`, from).Scan(&guestID, &tenantID)
 
 	if tenantID == "" {
 		tenantID = "eden-hotel"
 	}
-
-	h.pool.QueryRow(ctx,
-		`SELECT id FROM guests WHERE phone = $1 AND tenant_id = $2 LIMIT 1`, from, tenantID).Scan(&guestID)
 
 	if guestID != "" {
 		h.pool.QueryRow(ctx,
@@ -161,6 +155,11 @@ func (h *WhatsAppHandler) SendMessage(w http.ResponseWriter, r *http.Request) {
 
 	if req.To == "" || (req.Template == "" && req.Message == "") {
 		httputil.BadRequest(w, "to and template or message required")
+		return
+	}
+
+	if h.client == nil {
+		httputil.InternalServerError(w, "WhatsApp not configured")
 		return
 	}
 

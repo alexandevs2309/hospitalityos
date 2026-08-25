@@ -33,6 +33,10 @@ import {
   X,
   Loader2,
   Building,
+  MessageCircle,
+  Heart,
+  ShoppingCart,
+  PartyPopper,
 } from "lucide-react";
 
 const navGroups = [
@@ -61,6 +65,20 @@ const navGroups = [
       { href: "/reports", label: "Reportes", icon: BarChart3 },
       { href: "/night-audit", label: "Auditoria", icon: Moon },
       { href: "/fiscal", label: "Fiscal (e-CF)", icon: FileText },
+      { href: "/pos", label: "POS / F&B", icon: ShoppingCart },
+    ],
+  },
+  {
+    label: "Eventos",
+    items: [
+      { href: "/events", label: "Eventos & Grupos", icon: PartyPopper },
+    ],
+  },
+  {
+    label: "Comunicacion",
+    items: [
+      { href: "/whatsapp", label: "WhatsApp", icon: MessageCircle },
+      { href: "/crm", label: "CRM", icon: Heart },
     ],
   },
   {
@@ -84,6 +102,10 @@ const pageTitles = {
   "/reports": "Reportes",
   "/night-audit": "Auditoria",
   "/fiscal": "Fiscal (e-CF)",
+  "/whatsapp": "WhatsApp",
+  "/crm": "CRM",
+  "/pos": "POS / F&B",
+  "/events": "Eventos & Grupos",
   "/settings": "Configuracion",
 };
 

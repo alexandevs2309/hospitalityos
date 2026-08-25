@@ -20,6 +20,7 @@ import (
 	"github.com/hospitalityos/internal/infrastructure/eventstore"
 	"github.com/hospitalityos/internal/infrastructure/observability"
 	"github.com/hospitalityos/internal/infrastructure/postgres"
+	"github.com/hospitalityos/internal/infrastructure/whatsapp"
 	httplib "github.com/hospitalityos/internal/interfaces/http"
 	"github.com/hospitalityos/internal/interfaces/http/handlers"
 	"github.com/hospitalityos/pkg/es"
@@ -72,13 +73,27 @@ func main() {
 	staffHandler := handlers.NewStaffHandler(pool)
 	maintenanceHandler := handlers.NewMaintenanceHandler(pool)
 	reportHandler := handlers.NewReportHandler(pool)
-	whatsappHandler := handlers.NewWhatsAppHandler(pool, nil)
+	var waClient *whatsapp.Client
+	if token := os.Getenv("WHATSAPP_ACCESS_TOKEN"); token != "" {
+		phoneID := os.Getenv("WHATSAPP_PHONE_NUMBER_ID")
+		bizID := os.Getenv("WHATSAPP_BUSINESS_ACCOUNT_ID")
+		waClient = whatsapp.NewClient(token, phoneID, bizID)
+		slog.Info("WhatsApp client initialized")
+	} else {
+		slog.Warn("WhatsApp not configured (WHATSAPP_ACCESS_TOKEN missing)")
+	}
+	whatsappHandler := handlers.NewWhatsAppHandler(pool, waClient)
 	offlineHandler := handlers.NewOfflineHandler(pool)
 	i18nHandler := handlers.NewI18nHandler()
 	paymentGatewayHandler := handlers.NewPaymentGatewayHandler(pool, nil)
 	channelManagerHandler := handlers.NewChannelManagerHandler(pool)
 	fiscalHandler := handlers.NewFiscalHandler(pool, "")
 	analyticsHandler := handlers.NewAnalyticsHandler(pool)
+	guestPortalHandler := handlers.NewGuestPortalHandler(pool)
+	crmHandler := handlers.NewCRMHandler(pool)
+	posHandler := handlers.NewPOSHandler(pool)
+	eventsHandler := handlers.NewEventsHandler(pool)
+	revenueHandler := handlers.NewRevenueHandler(pool)
 
 	router := httplib.NewRouter(
 		reservationHandler,
@@ -105,6 +120,11 @@ func main() {
 		channelManagerHandler,
 		fiscalHandler,
 		analyticsHandler,
+		guestPortalHandler,
+		crmHandler,
+		posHandler,
+		eventsHandler,
+		revenueHandler,
 		pool,
 	)
 

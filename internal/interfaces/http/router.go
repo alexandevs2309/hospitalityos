@@ -34,6 +34,11 @@ func NewRouter(
 	channelManagerHandler *handlers.ChannelManagerHandler,
 	fiscalHandler *handlers.FiscalHandler,
 	analyticsHandler *handlers.AnalyticsHandler,
+	guestPortalHandler *handlers.GuestPortalHandler,
+	crmHandler *handlers.CRMHandler,
+	posHandler *handlers.POSHandler,
+	eventsHandler *handlers.EventsHandler,
+	revenueHandler *handlers.RevenueHandler,
 	pool *pgxpool.Pool,
 ) *chi.Mux {
 	r := chi.NewRouter()
@@ -69,6 +74,13 @@ func NewRouter(
 			r.Post("/booking/reservations", reservationHandler.CreatePublic)
 			r.Post("/booking/payments/intent", paymentGatewayHandler.CreatePaymentIntent)
 		})
+
+		// Guest Portal endpoints (public, token-based — no auth required)
+		r.Get("/portal/{token}", guestPortalHandler.GetPortalData)
+		r.Post("/portal/{token}/check-in", guestPortalHandler.SelfCheckIn)
+		r.Post("/portal/{token}/check-out", guestPortalHandler.SelfCheckOut)
+		r.Post("/portal/{token}/requests", guestPortalHandler.CreateServiceRequest)
+		r.Post("/portal/{token}/review", guestPortalHandler.SubmitReview)
 
 		r.Group(func(r chi.Router) {
 			r.Use(middleware.Auth)
@@ -161,6 +173,32 @@ func NewRouter(
 				r.Get("/analytics/predict/occupancy", analyticsHandler.PredictOccupancy)
 				r.Get("/analytics/forecast/revenue", analyticsHandler.ForecastRevenue)
 				r.Get("/analytics/insights", analyticsHandler.GetInsights)
+
+				r.Post("/portal/tokens", guestPortalHandler.GenerateToken)
+
+				r.Get("/crm/segments", crmHandler.GetSegments)
+				r.Get("/crm/guests", crmHandler.ListGuestsCRM)
+				r.Get("/crm/guests/history", crmHandler.GetGuestStayHistory)
+				r.Get("/crm/guests/communications", crmHandler.GetGuestCommunications)
+
+				r.Get("/pos/categories", posHandler.ListCategories)
+				r.Post("/pos/categories", posHandler.CreateCategory)
+				r.Get("/pos/items", posHandler.ListItems)
+				r.Post("/pos/items", posHandler.CreateItem)
+				r.Post("/pos/orders", posHandler.CreateOrder)
+				r.Get("/pos/orders/{id}", posHandler.GetOrder)
+				r.Post("/pos/orders/{id}/charge", posHandler.ChargeToFolio)
+				r.Get("/pos/dashboard", posHandler.POSDashboard)
+
+				r.Get("/events", eventsHandler.ListEvents)
+				r.Post("/events", eventsHandler.CreateEvent)
+				r.Patch("/events/{id}/status", eventsHandler.UpdateEventStatus)
+				r.Post("/events/block-dates", eventsHandler.BlockDates)
+				r.Get("/events/availability", eventsHandler.GetEventAvailability)
+
+				r.Get("/revenue/suggestions", revenueHandler.GetPricingSuggestions)
+				r.Get("/revenue/forecast", revenueHandler.GetRevenueForecast)
+				r.Post("/revenue/apply-price", revenueHandler.ApplySeasonPrice)
 
 				r.Get("/i18n/translations", i18nHandler.GetTranslations)
 				r.Get("/i18n/languages", i18nHandler.GetLanguages)

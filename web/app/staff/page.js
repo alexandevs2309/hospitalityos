@@ -64,7 +64,8 @@ export default function StaffPage() {
     setLoading(true);
     setError(null);
     try {
-      setStaff(await listStaff("eden-hotel"));
+      const res = await listStaff("eden-hotel");
+      setStaff(Array.isArray(res) ? res : res.staff || []);
     } catch (e) {
       setError(e.message || "Error al cargar el personal");
     } finally {

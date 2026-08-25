@@ -359,3 +359,136 @@ export function createPaymentIntent(data, tenantId) {
     tenantId,
   });
 }
+
+export function listWhatsAppMessages(tenantId, reservationId) {
+  const qs = reservationId ? `?reservation_id=${reservationId}` : "";
+  return request(`/whatsapp/messages${qs}`, { tenantId });
+}
+
+export function sendWhatsAppMessage(data, tenantId) {
+  return request("/whatsapp/send", {
+    method: "POST",
+    body: JSON.stringify(data),
+    tenantId,
+  });
+}
+
+export function getCRMSegments(tenantId) {
+  return request("/crm/segments", { tenantId });
+}
+
+export function listCRMGuests(tenantId, params = {}) {
+  const qs = new URLSearchParams(params).toString();
+  return request(`/crm/guests${qs ? "?" + qs : ""}`, { tenantId });
+}
+
+export function getGuestStayHistory(guestId, tenantId) {
+  return request(`/crm/guests/history?guest_id=${encodeURIComponent(guestId)}`, { tenantId });
+}
+
+export function getGuestCommunications(guestId, tenantId) {
+  return request(`/crm/guests/communications?guest_id=${encodeURIComponent(guestId)}`, { tenantId });
+}
+
+export function generatePortalToken(reservationId, tenantId) {
+  return request("/portal/tokens", {
+    method: "POST",
+    body: JSON.stringify({ reservation_id: reservationId }),
+    tenantId,
+  });
+}
+
+export function getPortalData(token) {
+  return fetch(`/v1/portal/${token}`).then(r => r.json());
+}
+
+export function portalSelfCheckIn(token) {
+  return fetch(`/v1/portal/${token}/check-in`, { method: "POST" }).then(r => r.json());
+}
+
+export function portalSelfCheckOut(token) {
+  return fetch(`/v1/portal/${token}/check-out`, { method: "POST" }).then(r => r.json());
+}
+
+export function portalCreateRequest(token, data) {
+  return fetch(`/v1/portal/${token}/requests`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  }).then(r => r.json());
+}
+
+export function portalSubmitReview(token, data) {
+  return fetch(`/v1/portal/${token}/review`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  }).then(r => r.json());
+}
+
+export function listPOSCategories(tenantId) {
+  return request("/pos/categories", { tenantId });
+}
+
+export function createPOSCategory(data, tenantId) {
+  return request("/pos/categories", {
+    method: "POST", body: JSON.stringify(data), tenantId,
+  });
+}
+
+export function listPOSItems(tenantId, categoryId) {
+  const qs = categoryId ? `?category_id=${categoryId}` : "";
+  return request(`/pos/items${qs}`, { tenantId });
+}
+
+export function createPOSItem(data, tenantId) {
+  return request("/pos/items", {
+    method: "POST", body: JSON.stringify(data), tenantId,
+  });
+}
+
+export function createPOSOrder(data, tenantId) {
+  return request("/pos/orders", {
+    method: "POST", body: JSON.stringify(data), tenantId,
+  });
+}
+
+export function getPOSOrder(id, tenantId) {
+  return request(`/pos/orders/${id}`, { tenantId });
+}
+
+export function chargePOSOrderToFolio(id, data, tenantId) {
+  return request(`/pos/orders/${id}/charge`, {
+    method: "POST", body: JSON.stringify(data), tenantId,
+  });
+}
+
+export function getPOSDashboard(tenantId) {
+  return request("/pos/dashboard", { tenantId });
+}
+
+export function listEvents(tenantId) {
+  return request("/events", { tenantId });
+}
+
+export function createEvent(data, tenantId) {
+  return request("/events", {
+    method: "POST", body: JSON.stringify(data), tenantId,
+  });
+}
+
+export function updateEventStatus(id, data, tenantId) {
+  return request(`/events/${id}/status`, {
+    method: "PATCH", body: JSON.stringify(data), tenantId,
+  });
+}
+
+export function blockEventDates(data, tenantId) {
+  return request("/events/block-dates", {
+    method: "POST", body: JSON.stringify(data), tenantId,
+  });
+}
+
+export function getEventAvailability(startDate, endDate, tenantId) {
+  return request(`/events/availability?start_date=${startDate}&end_date=${endDate}`, { tenantId });
+}

@@ -94,13 +94,16 @@ export default function GuestProfilePage() {
   if (error && !profile) return <Card><ErrorState message={error} onRetry={load} /></Card>;
   if (!profile) return null;
 
-  const { guest, preferences = [], tags = [], reservations = [], total_stays = 0, total_spent_cents = 0, last_stay } = profile;
+  const { tags = [], total_stays = 0, total_spent_cents = 0, last_stay_date, currency = "DOP" } = profile;
+  const guest = profile;
+  const prefObj = profile.preferences || {};
+  const preferences = Object.entries(prefObj).map(([key, value]) => ({ key, value: String(value) }));
 
   const summary = [
     { label: "Total Estadias", value: total_stays },
-    { label: "Total Gastado", value: formatMoney(total_spent_cents, reservations[0]?.currency || "DOP") },
-    { label: "Ultima Estadia", value: formatDate(last_stay) },
-    { label: "Miembro Desde", value: formatDate(guest.created_at) },
+    { label: "Total Gastado", value: formatMoney(total_spent_cents, currency) },
+    { label: "Ultima Estadia", value: formatDate(last_stay_date) },
+    { label: "Estancia Promedio", value: `${(profile.average_stay_nights || 0)} noches` },
   ];
 
   return (
@@ -149,43 +152,28 @@ export default function GuestProfilePage() {
         <div className="lg:col-span-2">
           <Card style={{ overflow: "hidden" }}>
             <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--stone-100)" }}>
-              <h2 style={{ fontSize: "var(--text-base)", fontWeight: 600, color: "var(--stone-900)" }}>Historial de Reservas</h2>
+              <h2 style={{ fontSize: "var(--text-base)", fontWeight: 600, color: "var(--stone-900)" }}>Datos del Huesped</h2>
             </div>
-            {reservations.length === 0 ? (
-              <div className="flex items-center justify-center" style={{ padding: "48px 0" }}>
-                <p style={{ fontSize: "var(--text-sm)", color: "var(--stone-400)" }}>Sin reservas registradas</p>
+            <CardContent>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p style={{ fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--stone-500)", textTransform: "uppercase" }}>Email</p>
+                  <p style={{ fontSize: "var(--text-sm)", color: "var(--stone-900)" }}>{guest.email || "-"}</p>
+                </div>
+                <div>
+                  <p style={{ fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--stone-500)", textTransform: "uppercase" }}>Telefono</p>
+                  <p style={{ fontSize: "var(--text-sm)", color: "var(--stone-900)" }}>{guest.phone || "-"}</p>
+                </div>
+                <div>
+                  <p style={{ fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--stone-500)", textTransform: "uppercase" }}>Pais</p>
+                  <p style={{ fontSize: "var(--text-sm)", color: "var(--stone-900)" }}>{guest.country || "-"}</p>
+                </div>
+                <div>
+                  <p style={{ fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--stone-500)", textTransform: "uppercase" }}>Documento</p>
+                  <p style={{ fontSize: "var(--text-sm)", color: "var(--stone-900)" }}>{guest.id_type ? `${guest.id_type}: ` : ""}{guest.id_number || "-"}</p>
+                </div>
               </div>
-            ) : (
-              <table className="w-full">
-                <thead>
-                  <tr style={{ background: "var(--stone-50)", borderBottom: "1px solid var(--stone-200)" }}>
-                    <th style={{ textAlign: "left", padding: "10px 20px", fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--stone-500)", textTransform: "uppercase", letterSpacing: "0.05em" }}>ID</th>
-                    <th style={{ textAlign: "left", padding: "10px 20px", fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--stone-500)", textTransform: "uppercase", letterSpacing: "0.05em" }}>Habitacion</th>
-                    <th style={{ textAlign: "left", padding: "10px 20px", fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--stone-500)", textTransform: "uppercase", letterSpacing: "0.05em" }}>Check-in</th>
-                    <th style={{ textAlign: "left", padding: "10px 20px", fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--stone-500)", textTransform: "uppercase", letterSpacing: "0.05em" }}>Check-out</th>
-                    <th style={{ textAlign: "left", padding: "10px 20px", fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--stone-500)", textTransform: "uppercase", letterSpacing: "0.05em" }}>Estado</th>
-                    <th style={{ textAlign: "right", padding: "10px 20px", fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--stone-500)", textTransform: "uppercase", letterSpacing: "0.05em" }}>Total</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {reservations.map(r => (
-                    <tr key={r.id} style={{ borderBottom: "1px solid var(--stone-100)" }}
-                      onMouseEnter={(e) => { e.currentTarget.style.background = "var(--stone-50)"; }}
-                      onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
-                    >
-                      <td className="font-mono" style={{ padding: "14px 20px", fontSize: "var(--text-sm)", color: "var(--stone-500)" }}>{r.id.slice(0, 8)}</td>
-                      <td style={{ padding: "14px 20px", fontSize: "var(--text-sm)", fontWeight: 500, color: "var(--stone-900)" }}>{r.room_number}</td>
-                      <td style={{ padding: "14px 20px", fontSize: "var(--text-sm)", color: "var(--stone-600)" }}>{formatDate(r.check_in)}</td>
-                      <td style={{ padding: "14px 20px", fontSize: "var(--text-sm)", color: "var(--stone-600)" }}>{formatDate(r.check_out)}</td>
-                      <td style={{ padding: "14px 20px" }}>
-                        <StatusBadge tone={STATUS_BADGES[r.status] || "neutral"}>{STATUS_LABELS[r.status] || r.status}</StatusBadge>
-                      </td>
-                      <td className="tabular-nums" style={{ padding: "14px 20px", fontSize: "var(--text-sm)", fontWeight: 500, color: "var(--stone-900)", textAlign: "right" }}>{formatMoney(r.total_cents, r.currency)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
+            </CardContent>
           </Card>
         </div>
 

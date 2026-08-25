@@ -89,7 +89,8 @@ export default function NightAuditPage() {
     setLoading(true);
     setLoadError(null);
     try {
-      setHistory(await getNightAuditHistory(TENANT));
+      const res = await getNightAuditHistory(TENANT);
+      setHistory(Array.isArray(res) ? res : res.runs || []);
     } catch (err) {
       setLoadError(err.message);
     } finally {

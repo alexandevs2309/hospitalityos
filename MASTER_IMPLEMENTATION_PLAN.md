@@ -1186,9 +1186,9 @@ TF-003 (Observability) --- independent, do anytime
 - Guest profiles with contact info
 
 ## Exit Criteria
-- WhatsApp messages sent for booking confirmation
-- Guest can self check-in via portal
-- CRM segments guests by behavior
+- [x] WhatsApp messages sent for booking confirmation
+- [x] Guest can self check-in via portal
+- [x] CRM segments guests by behavior
 
 ## Features
 
