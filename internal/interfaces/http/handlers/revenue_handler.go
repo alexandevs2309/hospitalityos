@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"context"
 	"encoding/json"
 	"math"
 	"net/http"
@@ -20,41 +19,39 @@ func NewRevenueHandler(pool *pgxpool.Pool) *RevenueHandler {
 	return &RevenueHandler{pool: pool}
 }
 
-func (h *RevenueHandler) setCtx(ctx context.Context, tenantID string) {
-	h.pool.Exec(ctx, `SET app.current_tenant = $1`, tenantID)
-}
-
 type PricingSuggestion struct {
-	RoomTypeID   string  `json:"room_type_id"`
-	RoomTypeName string  `json:"room_type_name"`
-	Date         string  `json:"date"`
-	CurrentPrice int64   `json:"current_price_cents"`
-	SuggestedPrice int64 `json:"suggested_price_cents"`
-	Demand       string  `json:"demand"`
-	Occupancy    float64 `json:"occupancy_pct"`
-	Reason       string  `json:"reason"`
+	RoomTypeID     string  `json:"room_type_id"`
+	RoomTypeName   string  `json:"room_type_name"`
+	Date           string  `json:"date"`
+	CurrentPrice   int64   `json:"current_price_cents"`
+	SuggestedPrice int64   `json:"suggested_price_cents"`
+	Demand         string  `json:"demand"`
+	Occupancy      float64 `json:"occupancy_pct"`
+	Reason         string  `json:"reason"`
 }
 
 func (h *RevenueHandler) GetPricingSuggestions(w http.ResponseWriter, r *http.Request) {
 	tenantID := httputil.ExtractTenantID(r)
 	ctx := r.Context()
-	h.setCtx(ctx, tenantID)
+
+	conn, err := h.pool.Acquire(ctx)
+	if err != nil {
+		httputil.InternalServerError(w, "db failed")
+		return
+	}
+	defer conn.Release()
+	conn.Exec(ctx, `SET app.current_tenant = $1`, tenantID)
 
 	daysAhead := 7
-	type DemandLevel struct {
-		Date       string
-		Booked     int
-		Total      int
-		Occupancy  float64
-	}
 
-	var roomTypes []struct {
-		ID          string
-		Name        string
-		BaseCents   int64
-		TotalRooms  int
+	type rtInfo struct {
+		ID         string
+		Name       string
+		BaseCents  int64
+		TotalRooms int
 	}
-	rows, _ := h.pool.Query(ctx,
+	var roomTypes []rtInfo
+	rows, _ := conn.Query(ctx,
 		`SELECT rt.id::text, rt.name, rt.base_price_cents, COUNT(rm.id)
 		 FROM room_types rt
 		 LEFT JOIN rooms rm ON rm.room_type_id = rt.id AND rm.tenant_id = rt.tenant_id
@@ -62,12 +59,7 @@ func (h *RevenueHandler) GetPricingSuggestions(w http.ResponseWriter, r *http.Re
 		 GROUP BY rt.id, rt.name, rt.base_price_cents`, tenantID)
 	defer rows.Close()
 	for rows.Next() {
-		var rt struct {
-			ID          string
-			Name        string
-			BaseCents   int64
-			TotalRooms  int
-		}
+		var rt rtInfo
 		rows.Scan(&rt.ID, &rt.Name, &rt.BaseCents, &rt.TotalRooms)
 		if rt.TotalRooms == 0 {
 			rt.TotalRooms = 1
@@ -85,7 +77,7 @@ func (h *RevenueHandler) GetPricingSuggestions(w http.ResponseWriter, r *http.Re
 
 		for _, rt := range roomTypes {
 			var booked int
-			h.pool.QueryRow(ctx,
+			conn.QueryRow(ctx,
 				`SELECT COUNT(*) FROM reservations res
 				 JOIN rooms rm ON rm.id = res.room_id AND rm.tenant_id = res.tenant_id
 				 WHERE rm.room_type_id = $1 AND res.tenant_id = $2
@@ -160,15 +152,22 @@ func (h *RevenueHandler) GetPricingSuggestions(w http.ResponseWriter, r *http.Re
 }
 
 type RevenueForecast struct {
-	Date           string  `json:"date"`
-	ExpectedRev    int64   `json:"expected_revenue_cents"`
-	OccupancyRate  float64 `json:"occupancy_rate"`
+	Date          string  `json:"date"`
+	ExpectedRev   int64   `json:"expected_revenue_cents"`
+	OccupancyRate float64 `json:"occupancy_rate"`
 }
 
 func (h *RevenueHandler) GetRevenueForecast(w http.ResponseWriter, r *http.Request) {
 	tenantID := httputil.ExtractTenantID(r)
 	ctx := r.Context()
-	h.setCtx(ctx, tenantID)
+
+	conn, err := h.pool.Acquire(ctx)
+	if err != nil {
+		httputil.InternalServerError(w, "db failed")
+		return
+	}
+	defer conn.Release()
+	conn.Exec(ctx, `SET app.current_tenant = $1`, tenantID)
 
 	daysAhead := 30
 	now := time.Now()
@@ -179,13 +178,13 @@ func (h *RevenueHandler) GetRevenueForecast(w http.ResponseWriter, r *http.Reque
 		dateStr := date.Format("2006-01-02")
 
 		var totalRooms int
-		h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM rooms WHERE tenant_id = $1`, tenantID).Scan(&totalRooms)
+		conn.QueryRow(ctx, `SELECT COUNT(*) FROM rooms WHERE tenant_id = $1`, tenantID).Scan(&totalRooms)
 		if totalRooms == 0 {
 			totalRooms = 1
 		}
 
 		var booked int
-		h.pool.QueryRow(ctx,
+		conn.QueryRow(ctx,
 			`SELECT COUNT(DISTINCT room_id) FROM reservations
 			 WHERE tenant_id = $1 AND status IN ('confirmed','checked_in')
 			 AND check_in <= $2 AND check_out > $2`,
@@ -196,7 +195,7 @@ func (h *RevenueHandler) GetRevenueForecast(w http.ResponseWriter, r *http.Reque
 		weekdayMult := getWeekdayMultiplier(date.Weekday())
 
 		var avgRate int64
-		h.pool.QueryRow(ctx,
+		conn.QueryRow(ctx,
 			`SELECT COALESCE(AVG(r.total_cents / NULLIF(EXTRACT(DAY FROM (r.check_out - r.check_in)),0)),0)
 			 FROM reservations r WHERE r.tenant_id = $1 AND r.status IN ('confirmed','checked_in')
 			 AND r.check_in <= $2 AND r.check_out > $2`,
@@ -204,7 +203,7 @@ func (h *RevenueHandler) GetRevenueForecast(w http.ResponseWriter, r *http.Reque
 
 		if avgRate == 0 {
 			var baseAvg int64
-			h.pool.QueryRow(ctx, `SELECT COALESCE(AVG(base_price_cents),0) FROM room_types WHERE tenant_id = $1`, tenantID).Scan(&baseAvg)
+			conn.QueryRow(ctx, `SELECT COALESCE(AVG(base_price_cents),0) FROM room_types WHERE tenant_id = $1`, tenantID).Scan(&baseAvg)
 			avgRate = int64(float64(baseAvg) * seasonMult * weekdayMult)
 		}
 
@@ -228,7 +227,6 @@ type ApplyPriceRequest struct {
 func (h *RevenueHandler) ApplySeasonPrice(w http.ResponseWriter, r *http.Request) {
 	tenantID := httputil.ExtractTenantID(r)
 	ctx := r.Context()
-	h.setCtx(ctx, tenantID)
 
 	var body ApplyPriceRequest
 	json.NewDecoder(r.Body).Decode(&body)

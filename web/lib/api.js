@@ -492,3 +492,17 @@ export function blockEventDates(data, tenantId) {
 export function getEventAvailability(startDate, endDate, tenantId) {
   return request(`/events/availability?start_date=${startDate}&end_date=${endDate}`, { tenantId });
 }
+
+export function getRevenueSuggestions(tenantId) {
+  return request("/revenue/suggestions", { tenantId });
+}
+
+export function getRevenueForecast(tenantId) {
+  return request("/revenue/forecast", { tenantId });
+}
+
+export function applySeasonPrice(data, tenantId) {
+  return request("/revenue/apply-price", {
+    method: "POST", body: JSON.stringify(data), tenantId,
+  });
+}

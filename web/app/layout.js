@@ -37,6 +37,8 @@ import {
   Heart,
   ShoppingCart,
   PartyPopper,
+  TrendingUp,
+  Bell,
 } from "lucide-react";
 
 const navGroups = [
@@ -66,6 +68,7 @@ const navGroups = [
       { href: "/night-audit", label: "Auditoria", icon: Moon },
       { href: "/fiscal", label: "Fiscal (e-CF)", icon: FileText },
       { href: "/pos", label: "POS / F&B", icon: ShoppingCart },
+      { href: "/revenue", label: "Revenue Mgmt", icon: TrendingUp },
     ],
   },
   {
@@ -106,13 +109,13 @@ const pageTitles = {
   "/crm": "CRM",
   "/pos": "POS / F&B",
   "/events": "Eventos & Grupos",
+  "/revenue": "Revenue Management",
   "/settings": "Configuracion",
 };
 
-function BuildingIcon() {
-  return <Building className="w-6 h-6" strokeWidth={1.5} />;
-}
-
+/* ═══════════════════════════════════════════════════════════════
+   SIDEBAR
+   ═══════════════════════════════════════════════════════════════ */
 function Sidebar({ onLinkClick }) {
   const pathname = usePathname();
   const [user, setUser] = useState(null);
@@ -122,35 +125,39 @@ function Sidebar({ onLinkClick }) {
 
   return (
     <aside
-      className="fixed left-0 top-0 bottom-0 z-[var(--z-sidebar)] flex flex-col border-r transition-colors duration-200"
+      className="fixed left-0 top-0 bottom-0 z-[var(--z-sidebar)] flex flex-col transition-all duration-200"
       style={{
         width: "var(--sidebar-width)",
         background: "var(--stone-100)",
-        borderColor: "var(--stone-200)",
+        borderRight: "1px solid var(--stone-200)",
       }}
     >
       {/* Logo */}
-      <div className="flex items-center gap-3 px-5 py-5 border-b" style={{ borderColor: "var(--stone-200)" }}>
+      <div className="flex items-center gap-3 px-5 py-5">
         <div
-          className="flex items-center justify-center w-8 h-8 rounded-lg"
-          style={{ background: "var(--stone-900)", color: "var(--stone-50)" }}
+          className="flex items-center justify-center w-9 h-9 rounded-xl"
+          style={{ background: "var(--stone-900)" }}
         >
-          <BuildingIcon />
+          <Building className="w-5 h-5" style={{ color: "var(--gold-500)" }} strokeWidth={1.5} />
         </div>
-        <div className="min-w-0">
-          <p className="text-sm font-semibold truncate" style={{ color: "var(--stone-900)" }}>Auron Hospitality</p>
-          <p className="text-xs truncate" style={{ color: "var(--stone-400)" }}>{user?.tenant_id || "eden-hotel"}</p>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-bold tracking-tight truncate" style={{ color: "var(--stone-900)" }}>
+            Auron Hospitality
+          </p>
+          <p className="text-xs truncate" style={{ color: "var(--stone-400)" }}>
+            {user?.tenant_id || "eden-hotel"}
+          </p>
         </div>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto py-3 px-3">
+      <nav className="flex-1 overflow-y-auto px-3 py-2">
         {navGroups.map((group, gi) => (
-          <div key={gi} className={gi > 0 ? "mt-4" : ""}>
+          <div key={gi} className={gi > 0 ? "mt-5" : ""}>
             {group.label && (
               <p
-                className="px-3 mb-1.5 text-xs font-medium uppercase tracking-wider"
-                style={{ color: "var(--stone-400)", fontSize: "var(--text-xs)" }}
+                className="px-3 mb-2 text-[10px] font-semibold uppercase tracking-widest"
+                style={{ color: "var(--stone-400)" }}
               >
                 {group.label}
               </p>
@@ -164,7 +171,7 @@ function Sidebar({ onLinkClick }) {
                     key={item.href}
                     href={item.href}
                     onClick={onLinkClick}
-                    className="flex items-center gap-2.5 rounded-md transition-all duration-150"
+                    className="group flex items-center gap-2.5 rounded-lg transition-all duration-150"
                     style={{
                       padding: "8px 12px",
                       fontSize: "var(--text-sm)",
@@ -173,11 +180,14 @@ function Sidebar({ onLinkClick }) {
                       background: isActive ? "white" : "transparent",
                       boxShadow: isActive ? "var(--shadow-sm)" : "none",
                     }}
-                    onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = "var(--stone-200)"; }}
+                    onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = "var(--stone-200/60)"; }}
                     onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = "transparent"; }}
                   >
-                    <Icon className="w-4 h-4 shrink-0" strokeWidth={1.5} />
+                    <Icon className="w-4 h-4 shrink-0" strokeWidth={isActive ? 2 : 1.5} />
                     {item.label}
+                    {isActive && (
+                      <div className="ml-auto w-1.5 h-1.5 rounded-full" style={{ background: "var(--gold-500)" }} />
+                    )}
                   </Link>
                 );
               })}
@@ -190,67 +200,90 @@ function Sidebar({ onLinkClick }) {
       <div className="px-3 py-3 border-t" style={{ borderColor: "var(--stone-200)" }}>
         <div className="flex items-center gap-2.5 px-2">
           <div
-            className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold shrink-0"
+            className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
             style={{ background: "var(--gold-100)", color: "var(--gold-700)" }}
           >
             {user?.full_name?.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase() || "AH"}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-xs font-medium truncate" style={{ color: "var(--stone-900)" }}>{user?.full_name || "Admin"}</p>
-            <p className="text-xs truncate" style={{ color: "var(--stone-400)" }}>{user?.role || "admin"}</p>
+            <p className="text-xs font-semibold truncate" style={{ color: "var(--stone-900)" }}>
+              {user?.full_name || "Admin"}
+            </p>
+            <p className="text-[10px] truncate" style={{ color: "var(--stone-400)" }}>
+              {user?.role || "admin"}
+            </p>
           </div>
-          <button
-            onClick={toggle}
-            className="p-1.5 rounded-lg transition-colors"
-            style={{ color: "var(--stone-400)" }}
-            onMouseEnter={(e) => { e.currentTarget.style.color = "var(--gold-500)"; e.currentTarget.style.background = "var(--gold-50)"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.color = "var(--stone-400)"; e.currentTarget.style.background = "transparent"; }}
-            title={dark ? "Modo claro" : "Modo oscuro"}
-            aria-label={dark ? "Switch to light mode" : "Switch to dark mode"}
-          >
-            {dark ? <Sun className="w-5 h-5" strokeWidth={2} /> : <Moon className="w-5 h-5" strokeWidth={2} />}
-          </button>
-          <button
-            onClick={() => { clearAuth(); window.location.href = "/login"; }}
-            className="p-1 rounded transition-colors"
-            style={{ color: "var(--stone-400)" }}
-            onMouseEnter={(e) => { e.currentTarget.style.color = "var(--rose-500)"; e.currentTarget.style.background = "var(--rose-50)"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.color = "var(--stone-400)"; e.currentTarget.style.background = "transparent"; }}
-            title="Cerrar sesion"
-          >
-            <LogOut className="w-4 h-4" strokeWidth={2} />
-          </button>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={toggle}
+              className="p-1.5 rounded-lg transition-all duration-150"
+              style={{ color: "var(--stone-400)" }}
+              onMouseEnter={(e) => { e.currentTarget.style.color = "var(--gold-500)"; e.currentTarget.style.background = "var(--gold-50)"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.color = "var(--stone-400)"; e.currentTarget.style.background = "transparent"; }}
+              title={dark ? "Modo claro" : "Modo oscuro"}
+              aria-label={dark ? "Switch to light mode" : "Switch to dark mode"}
+            >
+              {dark ? <Sun className="w-4 h-4" strokeWidth={2} /> : <Moon className="w-4 h-4" strokeWidth={2} />}
+            </button>
+            <button
+              onClick={() => { clearAuth(); window.location.href = "/login"; }}
+              className="p-1.5 rounded-lg transition-all duration-150"
+              style={{ color: "var(--stone-400)" }}
+              onMouseEnter={(e) => { e.currentTarget.style.color = "var(--rose-500)"; e.currentTarget.style.background = "var(--rose-50)"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.color = "var(--stone-400)"; e.currentTarget.style.background = "transparent"; }}
+              title="Cerrar sesion"
+            >
+              <LogOut className="w-4 h-4" strokeWidth={2} />
+            </button>
+          </div>
         </div>
       </div>
     </aside>
   );
 }
 
+/* ═══════════════════════════════════════════════════════════════
+   TOPBAR
+   ═══════════════════════════════════════════════════════════════ */
 function Topbar({ title }) {
   return (
     <header
-      className="fixed top-0 right-0 z-[var(--z-topbar)] flex items-center border-b transition-colors duration-200"
+      className="fixed top-0 right-0 z-[var(--z-topbar)] flex items-center transition-colors duration-200"
       style={{
         left: "var(--sidebar-width)",
         height: "var(--topbar-height)",
-        background: "white",
-        borderColor: "var(--stone-200)",
-        boxShadow: "var(--shadow-xs)",
+        background: "rgba(250,250,249,0.8)",
+        backdropFilter: "blur(12px)",
+        WebkitBackdropFilter: "blur(12px)",
+        borderBottom: "1px solid var(--stone-200)",
         padding: "0 var(--content-padding)",
       }}
     >
-      <h1 className="text-base font-semibold" style={{ color: "var(--stone-900)", fontWeight: 600 }}>{title}</h1>
+      <h1 className="text-sm font-semibold" style={{ color: "var(--stone-900)" }}>{title}</h1>
       <div className="flex-1" />
-      <div className="flex items-center gap-2">
-        <div className="flex items-center gap-1.5 px-2 py-1 rounded-full" style={{ background: "var(--emerald-50)" }}>
-          <span className="w-1.5 h-1.5 rounded-full" style={{ background: "var(--emerald-500)" }} />
-          <span className="text-xs font-medium" style={{ color: "var(--emerald-700)", fontSize: "var(--text-xs)" }}>Online</span>
+      <div className="flex items-center gap-3">
+        <button
+          className="p-2 rounded-lg transition-colors relative"
+          style={{ color: "var(--stone-400)" }}
+          onMouseEnter={(e) => { e.currentTarget.style.color = "var(--stone-700)"; e.currentTarget.style.background = "var(--stone-100)"; }}
+          onMouseLeave={(e) => { e.currentTarget.style.color = "var(--stone-400)"; e.currentTarget.style.background = "transparent"; }}
+          title="Notificaciones"
+        >
+          <Bell className="w-4.5 h-4.5" strokeWidth={1.5} />
+          <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full" style={{ background: "var(--rose-500)" }} />
+        </button>
+        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full" style={{ background: "var(--emerald-50)", border: "1px solid var(--emerald-100)" }}>
+          <span className="w-1.5 h-1.5 rounded-full animate-pulse-soft" style={{ background: "var(--emerald-500)" }} />
+          <span className="text-[11px] font-medium" style={{ color: "var(--emerald-700)" }}>Online</span>
         </div>
       </div>
     </header>
   );
 }
 
+/* ═══════════════════════════════════════════════════════════════
+   APP LAYOUT
+   ═══════════════════════════════════════════════════════════════ */
 function AppLayout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const pathname = usePathname();
@@ -276,7 +309,7 @@ function AppLayout({ children }) {
       {sidebarOpen && (
         <div
           className="lg:hidden fixed inset-0 z-30 animate-backdrop-in"
-          style={{ background: "rgba(0,0,0,0.3)" }}
+          style={{ background: "rgba(0,0,0,0.4)", backdropFilter: "blur(4px)" }}
           onClick={() => setSidebarOpen(false)}
         />
       )}

@@ -94,7 +94,7 @@ export function StatusBadge({ tone = "neutral", dot = false, className = "", chi
   return (
     <span
       className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full font-medium ${className}`}
-      style={{ padding: "3px 10px", fontSize: "var(--text-xs)", background: s.bg, color: s.color }}
+      style={{ padding: "3px 10px", fontSize: "11px", background: s.bg, color: s.color, letterSpacing: "0.01em" }}
     >
       {dot && <span className="w-1.5 h-1.5 rounded-full" style={{ background: s.color }} />}
       {children}
@@ -111,12 +111,14 @@ export function Card({ className = "", children, style: s = {} }) {
       className={className}
       style={{
         background: "white",
-        border: "1px solid var(--stone-200)",
+        border: "1px solid var(--stone-100)",
         borderRadius: "var(--radius-lg)",
-        boxShadow: "var(--shadow-sm)",
-        transition: "box-shadow var(--transition-base)",
+        boxShadow: "var(--shadow-card)",
+        transition: "box-shadow 200ms ease, transform 200ms ease",
         ...s,
       }}
+      onMouseEnter={(e) => { e.currentTarget.style.boxShadow = "var(--shadow-card-hover)"; }}
+      onMouseLeave={(e) => { e.currentTarget.style.boxShadow = "var(--shadow-card)"; }}
     >
       {children}
     </div>
@@ -202,19 +204,26 @@ export function Skeleton({ className = "", style: s = {} }) {
   return (
     <div
       className={`animate-shimmer ${className}`}
-      style={{ borderRadius: "var(--radius)", ...s }}
+      style={{ borderRadius: "var(--radius)", background: "var(--stone-100)", ...s }}
     />
   );
 }
 
 export function SkeletonCard() {
   return (
-    <Card>
-      <CardContent>
+    <div
+      style={{
+        background: "white",
+        border: "1px solid var(--stone-100)",
+        borderRadius: "var(--radius-lg)",
+        boxShadow: "var(--shadow-card)",
+      }}
+    >
+      <div style={{ padding: "20px" }}>
         <Skeleton style={{ height: "12px", width: "80px", marginBottom: "12px" }} />
         <Skeleton style={{ height: "28px", width: "48px" }} />
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }
 
@@ -240,13 +249,16 @@ export function SkeletonTable({ rows = 5, cols = 5 }) {
    ═══════════════════════════════════════════════════════════════ */
 export function LoadingState({ label = "Cargando...", className = "" }) {
   return (
-    <div className={`flex items-center justify-center ${className}`} style={{ padding: "80px 0" }}>
-      <div className="flex items-center gap-3">
-        <span
-          className="w-6 h-6 rounded-full border-2 animate-spin"
-          style={{ borderColor: "var(--stone-200)", borderTopColor: "var(--stone-900)" }}
-        />
-        <span style={{ fontSize: "var(--text-sm)", color: "var(--stone-400)" }}>{label}</span>
+    <div className={`flex items-center justify-center ${className}`} style={{ padding: "120px 0" }}>
+      <div className="flex flex-col items-center gap-3">
+        <div className="relative w-8 h-8">
+          <div className="absolute inset-0 rounded-full" style={{ border: "3px solid var(--stone-100)" }} />
+          <div
+            className="absolute inset-0 rounded-full animate-spin"
+            style={{ border: "3px solid transparent", borderTopColor: "var(--stone-900)" }}
+          />
+        </div>
+        <span className="text-sm font-medium" style={{ color: "var(--stone-400)" }}>{label}</span>
       </div>
     </div>
   );
@@ -293,8 +305,8 @@ export function PageHeader({ title, subtitle, actions, className = "" }) {
   return (
     <div className={`flex flex-wrap items-end justify-between gap-4 ${className}`} style={{ marginBottom: "24px" }}>
       <div>
-        <h1 style={{ fontSize: "var(--text-2xl)", fontWeight: 600, color: "var(--stone-900)" }}>{title}</h1>
-        {subtitle && <p className="mt-1" style={{ fontSize: "var(--text-sm)", color: "var(--stone-400)" }}>{subtitle}</p>}
+        <h1 className="text-2xl font-bold tracking-tight" style={{ color: "var(--stone-900)" }}>{title}</h1>
+        {subtitle && <p className="mt-1 text-sm" style={{ color: "var(--stone-400)" }}>{subtitle}</p>}
       </div>
       {actions && <div className="flex items-center gap-2">{actions}</div>}
     </div>
@@ -316,22 +328,22 @@ export function FilterPills({ options, value, onChange, className = "" }) {
             onClick={() => onChange(opt.key)}
             style={{
               borderRadius: "var(--radius-full)",
-              padding: "5px 12px",
-              fontSize: "var(--text-xs)",
+              padding: "6px 14px",
+              fontSize: "12px",
               fontWeight: 500,
               border: active ? "1px solid var(--stone-900)" : "1px solid var(--stone-200)",
               background: active ? "var(--stone-900)" : "white",
               color: active ? "white" : "var(--stone-600)",
               cursor: "pointer",
-              transition: "all var(--transition-fast)",
+              transition: "all 150ms ease",
               display: "inline-flex",
               alignItems: "center",
-              gap: "4px",
+              gap: "5px",
             }}
           >
             {opt.icon && <span>{opt.icon}</span>}
             {opt.label}
-            {opt.count != null && <span className="ml-1 opacity-60">{opt.count}</span>}
+            {opt.count != null && <span className="ml-0.5 opacity-60">{opt.count}</span>}
           </button>
         );
       })}
@@ -354,7 +366,7 @@ export function Modal({ open, onClose, title, maxWidth = "max-w-lg", children })
 
   return (
     <div className="fixed inset-0 flex items-center justify-center p-4" style={{ zIndex: "var(--z-modal)" }}>
-      <div className="absolute inset-0 animate-backdrop-in" style={{ background: "rgba(0,0,0,0.4)" }} onClick={onClose} />
+      <div className="absolute inset-0 animate-backdrop-in" style={{ background: "rgba(0,0,0,0.4)", backdropFilter: "blur(4px)", WebkitBackdropFilter: "blur(4px)" }} onClick={onClose} />
       <div
         role="dialog"
         aria-modal="true"
@@ -432,15 +444,15 @@ export function ToastProvider({ children }) {
               onClick={() => dismiss(t.id)}
               className="animate-toast-in cursor-pointer flex items-stretch"
               style={{
-                borderRadius: "var(--radius)",
+                borderRadius: "var(--radius-lg)",
                 boxShadow: "var(--shadow-lg)",
                 background: "white",
-                border: "1px solid var(--stone-200)",
+                border: "1px solid var(--stone-100)",
                 overflow: "hidden",
               }}
             >
               <div style={{ width: "3px", flexShrink: 0, background: s.bar }} />
-              <div className="flex items-center gap-2" style={{ padding: "10px 12px", fontSize: "var(--text-sm)", color: "var(--stone-700)" }}>
+              <div className="flex items-center gap-2.5" style={{ padding: "12px 14px", fontSize: "13px", color: "var(--stone-700)" }}>
                 <svg width="16" height="16" style={{ flexShrink: 0, color: s.bar }} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" d={s.icon} />
                 </svg>

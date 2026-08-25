@@ -3,23 +3,18 @@
 import { useState, useEffect } from "react";
 import { getFrontDeskToday, checkInReservation, checkOutReservation } from "@/lib/api";
 import {
-  Button,
-  Card,
-  CardContent,
-  CardHeader,
-  StatusBadge,
-  EmptyState,
-  LoadingState,
-  ErrorState,
-  useToast,
+  Button, Card, CardContent, StatusBadge, EmptyState, LoadingState, ErrorState, useToast,
 } from "@/components/ui";
-import { Building2, LogOut, Check, Home, Calendar, Users, Sparkles, Loader2, Wrench } from "lucide-react";
+import {
+  Building2, LogOut, Check, Home, Calendar, Users, Sparkles, Wrench,
+  BedDouble, UserCheck, ArrowDownToLine, ArrowUpFromLine, Clock,
+} from "lucide-react";
 
 const roomStatusConfig = {
-  available: { label: "Disponible", tone: "success" },
-  occupied: { label: "Ocupada", tone: "warning" },
-  cleaning: { label: "Limpieza", tone: "info" },
-  maintenance: { label: "Mantenimiento", tone: "danger" },
+  available: { label: "Disponible", tone: "success", color: "var(--emerald-500)" },
+  occupied: { label: "Ocupada", tone: "warning", color: "var(--amber-500)" },
+  cleaning: { label: "Limpieza", tone: "info", color: "var(--sky-500)" },
+  maintenance: { label: "Mantenimiento", tone: "danger", color: "var(--rose-500)" },
 };
 
 const reservationStatusConfig = {
@@ -30,48 +25,136 @@ const reservationStatusConfig = {
   pending: { label: "Pendiente", tone: "warning" },
 };
 
+/* ── Stat Pill ──────────────────────────────────────────────── */
+function StatPill({ label, value, icon: Icon, color }) {
+  return (
+    <div
+      className="flex items-center gap-3 px-4 py-3 rounded-xl"
+      style={{ background: "white", border: "1px solid var(--stone-100)" }}
+    >
+      <div
+        className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0"
+        style={{ background: `${color}12` }}
+      >
+        <Icon className="w-4.5 h-4.5" style={{ color }} strokeWidth={1.5} />
+      </div>
+      <div>
+        <p className="text-[11px] font-medium uppercase tracking-wider" style={{ color: "var(--stone-400)" }}>{label}</p>
+        <p className="text-lg font-bold tabular-nums" style={{ color: "var(--stone-900)" }}>{value}</p>
+      </div>
+    </div>
+  );
+}
+
+/* ── Room Card ──────────────────────────────────────────────── */
+function RoomCard({ room }) {
+  const sc = roomStatusConfig[room.status] || roomStatusConfig.available;
+  return (
+    <div
+      className="group relative overflow-hidden rounded-xl p-4 transition-all duration-200 hover:shadow-md hover:-translate-y-0.5"
+      style={{
+        background: "white",
+        border: "1px solid var(--stone-100)",
+        borderLeft: `3px solid ${sc.color}`,
+      }}
+    >
+      <div className="flex items-start justify-between mb-3">
+        <div>
+          <p className="text-lg font-bold tabular-nums" style={{ color: "var(--stone-900)" }}>{room.number}</p>
+          <p className="text-xs" style={{ color: "var(--stone-400)" }}>Piso {room.floor || "-"}</p>
+        </div>
+        <StatusBadge tone={sc.tone}>{sc.label}</StatusBadge>
+      </div>
+      {room.room_type && (
+        <p className="text-xs font-medium" style={{ color: "var(--stone-500)" }}>{room.room_type}</p>
+      )}
+      {room.status === "occupied" && room.guest_name && (
+        <div
+          className="flex items-center gap-2 mt-3 pt-3"
+          style={{ borderTop: "1px solid var(--stone-100)" }}
+        >
+          <div
+            className="w-6 h-6 rounded-full flex items-center justify-center shrink-0"
+            style={{ background: "var(--amber-50)" }}
+          >
+            <UserCheck className="w-3.5 h-3.5" style={{ color: "var(--amber-600)" }} />
+          </div>
+          <p className="truncate text-sm font-medium" style={{ color: "var(--stone-700)" }}>{room.guest_name}</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── Movement Table ─────────────────────────────────────────── */
 const TH = {
-  padding: "12px 20px",
+  padding: "12px 16px",
   textAlign: "left",
-  fontSize: "var(--text-xs)",
+  fontSize: "11px",
   fontWeight: 600,
   textTransform: "uppercase",
   letterSpacing: "0.05em",
   color: "var(--stone-400)",
 };
 
-function StatCard({ label, value, colorClass }) {
+function MovementTable({ title, icon: Icon, rows, emptyText, renderActions }) {
   return (
     <Card>
-      <CardContent className="p-4">
-        <p className="text-xs font-medium uppercase tracking-wider text-stone-400">{label}</p>
-        <p className="mt-1 tabular-nums text-2xl font-semibold" style={{ color: colorClass || "var(--stone-900)" }}>{value}</p>
-      </CardContent>
-    </Card>
-  );
-}
-
-function RoomCard({ room }) {
-  const sc = roomStatusConfig[room.status] || roomStatusConfig.available;
-  return (
-    <Card>
-      <CardContent className="p-4">
-        <div className="flex items-start justify-between mb-2">
-          <div>
-            <p className="text-xl font-semibold text-stone-900">{room.number}</p>
-            <p className="text-xs text-stone-400">Piso {room.floor || "-"}</p>
-          </div>
-          <StatusBadge tone={sc.tone}>{sc.label}</StatusBadge>
+      <CardContent style={{ padding: "20px" }}>
+        <div className="flex items-center gap-2 mb-4">
+          <Icon className="w-5 h-5" style={{ color: "var(--stone-400)" }} strokeWidth={1.5} />
+          <h3 className="text-base font-semibold" style={{ color: "var(--stone-900)" }}>{title}</h3>
+          <span
+            className="ml-1 px-2 py-0.5 rounded-full text-[11px] font-medium tabular-nums"
+            style={{ background: "var(--stone-100)", color: "var(--stone-500)" }}
+          >
+            {rows.length}
+          </span>
         </div>
-        {room.room_type && (
-          <p className="text-xs text-stone-400">{room.room_type}</p>
-        )}
-        {room.status === "occupied" && room.guest_name && (
-          <div className="flex items-center gap-2 mt-3 pt-3 border-t border-stone-100">
-            <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full" style={{ background: "var(--stone-100)" }}>
-              <UserCheck className="w-4 h-4 text-stone-500" />
-            </div>
-            <p className="truncate text-sm text-stone-600">{room.guest_name}</p>
+        {rows.length === 0 ? (
+          <div className="text-center py-8" style={{ color: "var(--stone-400)" }}>
+            <p className="text-sm">{emptyText}</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr style={{ borderBottom: "1px solid var(--stone-100)" }}>
+                  <th style={TH}>Huesped</th>
+                  <th style={TH}>Hab.</th>
+                  <th style={TH}>Entrada</th>
+                  <th style={TH}>Salida</th>
+                  <th style={{ ...TH, textAlign: "right" }}>Accion</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((r) => {
+                  const sc = reservationStatusConfig[r.status] || reservationStatusConfig.pending;
+                  return (
+                    <tr
+                      key={r.id}
+                      className="transition-colors"
+                      style={{ borderBottom: "1px solid var(--stone-50)" }}
+                      onMouseEnter={(e) => { e.currentTarget.style.background = "var(--stone-50)"; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+                    >
+                      <td style={{ padding: "12px 16px" }}>
+                        <div className="flex items-center gap-2">
+                          <StatusBadge tone={sc.tone}>{sc.label}</StatusBadge>
+                          <span className="text-sm font-medium" style={{ color: "var(--stone-900)" }}>{r.guest_name}</span>
+                        </div>
+                      </td>
+                      <td style={{ padding: "12px 16px", fontSize: "13px", fontWeight: 500, color: "var(--stone-600)" }}>{r.room_number}</td>
+                      <td style={{ padding: "12px 16px", fontSize: "13px", color: "var(--stone-500)" }}>{r.check_in}</td>
+                      <td style={{ padding: "12px 16px", fontSize: "13px", color: "var(--stone-500)" }}>{r.check_out}</td>
+                      <td style={{ padding: "12px 16px" }}>
+                        <div className="flex justify-end">{renderActions(r)}</div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         )}
       </CardContent>
@@ -79,55 +162,9 @@ function RoomCard({ room }) {
   );
 }
 
-function MovementTable({ title, rows, emptyText, renderActions }) {
-  return (
-    <Card className="overflow-hidden">
-      <CardHeader title={title} />
-      {rows.length === 0 ? (
-        <EmptyState title={emptyText} />
-      ) : (
-        <table className="w-full">
-          <thead>
-            <tr style={{ borderBottom: "1px solid var(--stone-200)", background: "var(--stone-50)" }}>
-              <th style={TH}>Huésped</th>
-              <th style={TH}>Hab.</th>
-              <th style={TH}>Entrada</th>
-              <th style={TH}>Salida</th>
-              <th style={{ ...TH, textAlign: "right" }}>Acción</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((r) => {
-              const sc = reservationStatusConfig[r.status] || reservationStatusConfig.pending;
-              return (
-                <tr
-                  key={r.id}
-                  style={{ borderBottom: "1px solid var(--stone-100)" }}
-                  onMouseEnter={(e) => { e.currentTarget.style.background = "var(--stone-50)"; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
-                >
-                  <td style={{ padding: "14px 20px" }}>
-                    <div className="flex items-center gap-2">
-                      <StatusBadge tone={sc.tone}>{sc.label}</StatusBadge>
-                      <span className="text-sm font-medium text-stone-900">{r.guest_name}</span>
-                    </div>
-                  </td>
-                  <td style={{ padding: "14px 20px", fontSize: "var(--text-sm)", fontWeight: 500, color: "var(--stone-600)" }}>{r.room_number}</td>
-                  <td style={{ padding: "14px 20px", fontSize: "var(--text-sm)", color: "var(--stone-500)" }}>{r.check_in}</td>
-                  <td style={{ padding: "14px 20px", fontSize: "var(--text-sm)", color: "var(--stone-500)" }}>{r.check_out}</td>
-                  <td style={{ padding: "14px 20px" }}>
-                    <div className="flex justify-end">{renderActions(r)}</div>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      )}
-    </Card>
-  );
-}
-
+/* ═══════════════════════════════════════════════════════════════
+   FRONT DESK PAGE
+   ═══════════════════════════════════════════════════════════════ */
 export default function FrontDeskPage() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -146,9 +183,7 @@ export default function FrontDeskPage() {
     }
   }
 
-  useEffect(() => {
-    load();
-  }, []);
+  useEffect(() => { load(); }, []);
 
   async function handleAction(action, id) {
     setActionInProgress(id);
@@ -158,31 +193,26 @@ export default function FrontDeskPage() {
       toast(action === "checkin" ? "Check-in completado" : "Check-out completado", "success");
       await load();
     } catch (err) {
-      toast(err.message || "No se pudo completar la operación", "error");
+      toast(err.message || "No se pudo completar la operacion", "error");
     } finally {
       setActionInProgress(null);
     }
   }
 
-  if (loading) {
-    return <LoadingState label="Cargando recepción..." />;
-  }
-
-  if (error) {
-    return <ErrorState message={error} onRetry={() => { setLoading(true); load(); }} />;
-  }
+  if (loading) return <LoadingState label="Cargando recepcion..." />;
+  if (error) return <ErrorState message={error} onRetry={() => { setLoading(true); load(); }} />;
 
   const summary = data?.summary || {};
   const rooms = data?.rooms || [];
 
   const stats = [
-    { label: "Total Hab.", value: summary.total ?? 0, colorClass: "text-stone-900" },
-    { label: "Disponibles", value: summary.available ?? 0, colorClass: "text-emerald-600" },
-    { label: "Ocupadas", value: summary.occupied ?? 0, colorClass: "text-amber-600" },
-    { label: "Llegadas", value: summary.arrivals ?? 0, colorClass: "text-gold-600" },
-    { label: "Salidas", value: summary.departures ?? 0, colorClass: "text-rose-600" },
-    { label: "En Casa", value: summary.in_house ?? 0, colorClass: "text-sky-600" },
-    { label: "En Limpieza", value: summary.cleaning ?? rooms.filter((r) => r.status === "cleaning").length, colorClass: "text-stone-900" },
+    { label: "Total", value: summary.total ?? 0, icon: BedDouble, color: "var(--stone-700)" },
+    { label: "Disponibles", value: summary.available ?? 0, icon: Home, color: "var(--emerald-500)" },
+    { label: "Ocupadas", value: summary.occupied ?? 0, icon: Users, color: "var(--amber-500)" },
+    { label: "Llegadas", value: summary.arrivals ?? 0, icon: ArrowDownToLine, color: "var(--blue-600)" },
+    { label: "Salidas", value: summary.departures ?? 0, icon: ArrowUpFromLine, color: "var(--rose-500)" },
+    { label: "En Casa", value: summary.in_house ?? 0, icon: Building2, color: "var(--sky-600)" },
+    { label: "Limpieza", value: summary.cleaning ?? rooms.filter((r) => r.status === "cleaning").length, icon: Sparkles, color: "var(--violet-500)" },
   ];
 
   const roomsByStatus = {
@@ -192,73 +222,89 @@ export default function FrontDeskPage() {
     maintenance: rooms.filter((r) => r.status === "maintenance"),
   };
 
+  const statusGroups = [
+    { key: "available", title: "Disponibles", icon: Home, color: "var(--emerald-500)" },
+    { key: "occupied", title: "Ocupadas", icon: Users, color: "var(--amber-500)" },
+    { key: "cleaning", title: "En Limpieza", icon: Sparkles, color: "var(--sky-500)" },
+    { key: "maintenance", title: "Mantenimiento", icon: Wrench, color: "var(--rose-500)" },
+  ];
+
   return (
-    <div className="animate-fade-in">
-      <div style={{ marginBottom: "24px" }}>
-        <h1 className="text-2xl font-semibold text-stone-900">Recepción</h1>
-        <p className="text-sm text-stone-400 mt-1">Panel de operaciones del día</p>
+    <div className="space-y-6">
+      {/* Header */}
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight" style={{ color: "var(--stone-900)" }}>Recepcion</h1>
+        <p className="text-sm mt-1" style={{ color: "var(--stone-400)" }}>Panel de operaciones del dia</p>
       </div>
 
-      <div className="mb-6 grid grid-cols-2 gap-4 md:grid-cols-4 xl:grid-cols-7">
+      {/* Stats Grid */}
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-7">
         {stats.map((s) => (
-          <StatCard key={s.label} label={s.label} value={s.value} colorClass={s.colorClass} />
+          <StatPill key={s.label} label={s.label} value={s.value} icon={s.icon} color={s.color} />
         ))}
       </div>
 
-      <div className="mb-8 grid grid-cols-1 gap-5 lg:grid-cols-2">
+      {/* Arrivals / Departures */}
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
         <MovementTable
           title="Llegadas Hoy"
+          icon={ArrowDownToLine}
           rows={data?.arrivals || []}
           emptyText="No hay llegadas programadas hoy"
           renderActions={(r) =>
             r.status !== "checked_in" && (
               <Button variant="success" size="sm" loading={actionInProgress === r.id} onClick={() => handleAction("checkin", r.id)}>
-                <LogOut className="w-3.5 h-3.5 mr-1" /> Check-in
+                <Check className="w-3.5 h-3.5 mr-1" /> Check-in
               </Button>
             )
           }
         />
         <MovementTable
           title="Salidas Hoy"
+          icon={ArrowUpFromLine}
           rows={data?.departures || []}
           emptyText="No hay salidas programadas hoy"
           renderActions={(r) =>
             r.status === "checked_in" && (
               <Button variant="primary" size="sm" loading={actionInProgress === r.id} onClick={() => handleAction("checkout", r.id)}>
-                <Check className="w-3.5 h-3.5 mr-1" /> Check-out
+                <LogOut className="w-3.5 h-3.5 mr-1" /> Check-out
               </Button>
             )
           }
         />
       </div>
 
-      {[
-        { key: "available", title: "Disponibles", icon: Home },
-        { key: "occupied", title: "Ocupadas", icon: Users },
-        { key: "cleaning", title: "En Limpieza", icon: Sparkles },
-        { key: "maintenance", title: "En Mantenimiento", icon: Wrench },
-      ].map((group) => (
-        <section key={group.key} style={{ marginBottom: "32px" }}>
-          <div className="mb-3 flex items-center gap-2">
-            <group.icon className="w-5 h-5 text-stone-500" />
-            <h2 className="text-base font-semibold text-stone-900">{group.title}</h2>
+      {/* Room Sections */}
+      {statusGroups.map((group) => (
+        <section key={group.key}>
+          <div className="flex items-center gap-2.5 mb-3">
+            <div
+              className="w-7 h-7 rounded-lg flex items-center justify-center"
+              style={{ background: `${group.color}15` }}
+            >
+              <group.icon className="w-4 h-4" style={{ color: group.color }} strokeWidth={1.5} />
+            </div>
+            <h2 className="text-base font-semibold" style={{ color: "var(--stone-900)" }}>{group.title}</h2>
             <span
-              className="tabular-nums"
-              style={{ fontSize: "var(--text-xs)", color: "var(--stone-500)", background: "var(--stone-100)", borderRadius: "var(--radius-full)", padding: "2px 8px" }}
+              className="px-2 py-0.5 rounded-full text-[11px] font-semibold tabular-nums"
+              style={{ background: `${group.color}12`, color: group.color }}
             >
               {roomsByStatus[group.key].length}
             </span>
           </div>
           {roomsByStatus[group.key].length > 0 ? (
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6">
               {roomsByStatus[group.key].map((rm) => (
                 <RoomCard key={rm.id} room={rm} />
               ))}
             </div>
           ) : (
-            <Card style={{ borderStyle: "dashed", boxShadow: "none" }}>
-              <EmptyState title="Sin habitaciones en este estado" />
-            </Card>
+            <div
+              className="text-center py-8 rounded-xl"
+              style={{ background: "var(--stone-50)", border: "1px dashed var(--stone-200)" }}
+            >
+              <p className="text-sm" style={{ color: "var(--stone-400)" }}>Sin habitaciones en este estado</p>
+            </div>
           )}
         </section>
       ))}

@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 @import "../lib/design-tokens.css";
 @import "tailwindcss";
 
@@ -55,6 +55,12 @@
   --color-sky-500: var(--sky-500);
   --color-sky-600: var(--sky-600);
   --color-sky-700: var(--sky-700);
+
+  --color-blue-50:  var(--blue-50);
+  --color-blue-100: var(--blue-100);
+  --color-blue-200: var(--blue-200);
+  --color-blue-500: var(--blue-500);
+  --color-blue-600: var(--blue-600);
 }
 
 @layer base {
@@ -79,22 +85,19 @@
     min-height: 100vh;
   }
 
-  /* Tabular nums for all numeric displays */
   .tabular-nums { font-variant-numeric: tabular-nums; }
 
-  /* Selection */
   ::selection {
     background: var(--gold-200);
     color: var(--stone-900);
   }
 
-  /* Focus ring — consistent across all interactive elements */
   :focus-visible {
-    outline: 2px solid var(--gold-500);
+    outline: 2px solid var(--blue-500);
     outline-offset: 2px;
+    border-radius: var(--radius-sm);
   }
 
-  /* Scrollbar — subtle */
   ::-webkit-scrollbar { width: 6px; height: 6px; }
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: var(--stone-300); border-radius: 3px; }
@@ -102,7 +105,6 @@
 }
 
 @layer utilities {
-  /* ── Animations ── */
   @keyframes shimmer {
     0% { background-position: -200% 0; }
     100% { background-position: 200% 0; }
@@ -133,6 +135,16 @@
     to { transform: translateY(0); opacity: 1; }
   }
 
+  @keyframes pulse-soft {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-4px); }
+  }
+
   @keyframes spin {
     to { transform: rotate(360deg); }
   }
@@ -149,4 +161,31 @@
   .animate-backdrop-in { animation: backdrop-in 0.15s ease-out; }
   .animate-toast-in { animation: toast-in 0.25s ease-out; }
   .animate-spin { animation: spin 0.6s linear infinite; }
+  .animate-pulse-soft { animation: pulse-soft 2s ease-in-out infinite; }
+  .animate-float { animation: float 3s ease-in-out infinite; }
+
+  .glass { 
+    background: rgba(255,255,255,0.7); 
+    backdrop-filter: blur(12px); 
+    -webkit-backdrop-filter: blur(12px); 
+  }
+
+  .dark .glass { 
+    background: rgba(28,25,23,0.7); 
+  }
+
+  .card-hover {
+    transition: all var(--transition-slow);
+  }
+  .card-hover:hover {
+    box-shadow: var(--shadow-card-hover);
+    transform: translateY(-1px);
+  }
+
+  .gradient-text {
+    background: linear-gradient(135deg, var(--gold-500) 0%, var(--gold-600) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
 }

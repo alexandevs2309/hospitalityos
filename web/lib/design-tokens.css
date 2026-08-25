@@ -1,11 +1,11 @@
 /* ═══════════════════════════════════════════════════════════════
    AURON HOSPITALITY — Design Tokens
-   Stripe Dashboard × Linear × Vercel
-   Light-first, precision typography, controlled density
+   Inspired by: Stripe Dashboard × Linear × Vercel × Cloudbeds
+   Premium hotel management SaaS
    ═══════════════════════════════════════════════════════════════ */
 
 :root {
-  /* ── Stone (neutrals — replaces slate) ── */
+  /* ── Stone (neutrals) ── */
   --stone-50:  #FAFAF9;
   --stone-100: #F5F5F4;
   --stone-200: #E7E5E3;
@@ -18,7 +18,7 @@
   --stone-900: #1C1917;
   --stone-950: #0C0A09;
 
-  /* ── Gold (premium accent — badges + active states ONLY) ── */
+  /* ── Gold (premium accent) ── */
   --gold-50:  #FFFBEB;
   --gold-100: #FEF3C7;
   --gold-200: #FDE68A;
@@ -30,10 +30,20 @@
   --gold-800: #78580A;
   --gold-900: #5C4308;
 
+  /* ── Brand Blue (primary actions) ── */
+  --blue-50:  #EFF6FF;
+  --blue-100: #DBEAFE;
+  --blue-200: #BFDBFE;
+  --blue-400: #60A5FA;
+  --blue-500: #3B82F6;
+  --blue-600: #2563EB;
+  --blue-700: #1D4ED8;
+
   /* ── Semantic: Status ── */
   --emerald-50:  #ECFDF5;
   --emerald-100: #D1FAE5;
   --emerald-200: #A7F3D0;
+  --emerald-400: #34D399;
   --emerald-500: #10B981;
   --emerald-600: #059669;
   --emerald-700: #047857;
@@ -41,6 +51,7 @@
   --amber-50:  #FFFBEB;
   --amber-100: #FEF3C7;
   --amber-200: #FDE68A;
+  --amber-400: #FBBF24;
   --amber-500: #F59E0B;
   --amber-600: #D97706;
   --amber-700: #B45309;
@@ -48,6 +59,7 @@
   --rose-50:  #FFF1F2;
   --rose-100: #FFE4E6;
   --rose-200: #FECDD3;
+  --rose-400: #FB7185;
   --rose-500: #F43F5E;
   --rose-600: #E11D48;
   --rose-700: #BE123C;
@@ -55,12 +67,19 @@
   --sky-50:  #F0F9FF;
   --sky-100: #E0F2FE;
   --sky-200: #BAE6FD;
+  --sky-400: #38BDF8;
   --sky-500: #0EA5E9;
   --sky-600: #0284C7;
   --sky-700: #0369A1;
 
+  --violet-50:  #F5F3FF;
+  --violet-100: #EDE9FE;
+  --violet-500: #8B5CF6;
+  --violet-600: #7C3AED;
+
   /* ── Typography ── */
   --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  --font-display: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
   --font-mono: 'SF Mono', 'Cascadia Code', 'Fira Code', monospace;
 
   --text-xs:   11px;
@@ -70,6 +89,7 @@
   --text-xl:   20px;
   --text-2xl:  24px;
   --text-3xl:  30px;
+  --text-4xl:  36px;
 
   --leading-tight: 1.25;
   --leading-normal: 1.5;
@@ -93,25 +113,29 @@
   --radius-md: 8px;
   --radius-lg: 12px;
   --radius-xl: 16px;
+  --radius-2xl: 20px;
   --radius-full: 9999px;
 
   /* ── Shadows ── */
-  --shadow-xs:  0 1px 2px rgba(0,0,0,0.04);
-  --shadow-sm:  0 1px 2px rgba(0,0,0,0.05);
-  --shadow:     0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
-  --shadow-md:  0 4px 6px rgba(0,0,0,0.05), 0 2px 4px rgba(0,0,0,0.04);
-  --shadow-lg:  0 10px 15px rgba(0,0,0,0.06), 0 4px 6px rgba(0,0,0,0.04);
-  --shadow-xl:  0 20px 25px rgba(0,0,0,0.08), 0 8px 10px rgba(0,0,0,0.04);
+  --shadow-xs:  0 1px 2px rgba(0,0,0,0.03);
+  --shadow-sm:  0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.03);
+  --shadow:     0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-md:  0 4px 6px -1px rgba(0,0,0,0.06), 0 2px 4px -2px rgba(0,0,0,0.04);
+  --shadow-lg:  0 10px 15px -3px rgba(0,0,0,0.06), 0 4px 6px -4px rgba(0,0,0,0.04);
+  --shadow-xl:  0 20px 25px -5px rgba(0,0,0,0.08), 0 8px 10px -6px rgba(0,0,0,0.04);
+  --shadow-card: 0 1px 3px rgba(0,0,0,0.04), 0 0 0 1px rgba(0,0,0,0.02);
+  --shadow-card-hover: 0 4px 12px rgba(0,0,0,0.08), 0 0 0 1px rgba(0,0,0,0.04);
 
   /* ── Layout ── */
-  --sidebar-width: 220px;
-  --topbar-height: 52px;
-  --content-padding: 24px;
+  --sidebar-width: 240px;
+  --sidebar-collapsed-width: 64px;
+  --topbar-height: 56px;
+  --content-padding: 28px;
 
   /* ── Transitions ── */
-  --transition-fast: 120ms ease;
+  --transition-fast: 100ms ease;
   --transition-base: 150ms ease;
-  --transition-slow: 250ms ease;
+  --transition-slow: 250ms cubic-bezier(0.4, 0, 0.2, 1);
 
   /* ── Z-index ── */
   --z-sidebar: 40;
@@ -119,9 +143,17 @@
   --z-dropdown: 50;
   --z-modal: 90;
   --z-toast: 100;
+
+  /* ── Gradients ── */
+  --gradient-card: linear-gradient(135deg, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0.4) 100%);
+  --gradient-sidebar: linear-gradient(180deg, var(--stone-900) 0%, var(--stone-950) 100%);
+  --gradient-gold: linear-gradient(135deg, var(--gold-400) 0%, var(--gold-600) 100%);
+  --gradient-blue: linear-gradient(135deg, var(--blue-500) 0%, var(--blue-600) 100%);
+  --gradient-emerald: linear-gradient(135deg, var(--emerald-500) 0%, var(--emerald-600) 100%);
+  --gradient-rose: linear-gradient(135deg, var(--rose-500) 0%, var(--rose-600) 100%);
 }
 
-/* ── Dark mode (class-based) ── */
+/* ── Dark mode ── */
 :root.dark {
   --stone-50:  #0C0A09;
   --stone-100: #1C1917;
@@ -146,38 +178,60 @@
   --gold-800: #FEF3C7;
   --gold-900: #FFFBEB;
 
+  --blue-50:  #1E3A5F;
+  --blue-100: #1E40AF;
+  --blue-200: #2563EB;
+  --blue-400: #60A5FA;
+  --blue-500: #93C5FD;
+  --blue-600: #BFDBFE;
+  --blue-700: #DBEAFE;
+
   --emerald-50:  #047857;
   --emerald-100: #059669;
   --emerald-200: #10B981;
-  --emerald-500: #34D399;
-  --emerald-600: #6EE7B7;
-  --emerald-700: #A7F3D0;
+  --emerald-400: #34D399;
+  --emerald-500: #6EE7B7;
+  --emerald-600: #A7F3D0;
+  --emerald-700: #D1FAE5;
 
-  --amber-50:  #B45309;
-  --amber-100: #D97706;
-  --amber-200: #F59E0B;
-  --amber-500: #FBBF24;
-  --amber-600: #FCD34D;
-  --amber-700: #FDE68A;
+  --amber-50:  #92400E;
+  --amber-100: #B45309;
+  --amber-200: #D97706;
+  --amber-400: #FBBF24;
+  --amber-500: #FCD34D;
+  --amber-600: #FDE68A;
+  --amber-700: #FEF3C7;
 
-  --rose-50:  #BE123C;
-  --rose-100: #E11D48;
-  --rose-200: #F43F5E;
-  --rose-500: #FB7185;
-  --rose-600: #FDA4AF;
+  --rose-50:  #9F1239;
+  --rose-100: #BE123C;
+  --rose-200: #E11D48;
+  --rose-400: #FB7185;
+  --rose-500: #FDA4AF;
+  --rose-600: #FECDD3;
   --rose-700: #FFE4E6;
 
-  --sky-50:  #0369A1;
-  --sky-100: #0284C7;
-  --sky-200: #0EA5E9;
-  --sky-500: #38BDF8;
-  --sky-600: #7DD3FC;
-  --sky-700: #BAE6FD;
+  --sky-50:  #075985;
+  --sky-100: #0369A1;
+  --sky-200: #0284C7;
+  --sky-400: #38BDF8;
+  --sky-500: #7DD3FC;
+  --sky-600: #BAE6FD;
+  --sky-700: #E0F2FE;
 
-  --shadow-xs:  0 1px 2px rgba(0,0,0,0.2);
-  --shadow-sm:  0 1px 2px rgba(0,0,0,0.3);
-  --shadow:     0 1px 3px rgba(0,0,0,0.4), 0 1px 2px rgba(0,0,0,0.2);
-  --shadow-md:  0 4px 6px rgba(0,0,0,0.3), 0 2px 4px rgba(0,0,0,0.2);
-  --shadow-lg:  0 10px 15px rgba(0,0,0,0.4), 0 4px 6px rgba(0,0,0,0.2);
-  --shadow-xl:  0 20px 25px rgba(0,0,0,0.5), 0 8px 10px rgba(0,0,0,0.2);
+  --violet-50:  #4C1D95;
+  --violet-100: #5B21B6;
+  --violet-500: #A78BFA;
+  --violet-600: #C4B5FD;
+
+  --shadow-xs:  0 1px 2px rgba(0,0,0,0.15);
+  --shadow-sm:  0 1px 3px rgba(0,0,0,0.2), 0 1px 2px rgba(0,0,0,0.15);
+  --shadow:     0 1px 3px rgba(0,0,0,0.25), 0 1px 2px rgba(0,0,0,0.15);
+  --shadow-md:  0 4px 6px -1px rgba(0,0,0,0.3), 0 2px 4px -2px rgba(0,0,0,0.2);
+  --shadow-lg:  0 10px 15px -3px rgba(0,0,0,0.3), 0 4px 6px -4px rgba(0,0,0,0.2);
+  --shadow-xl:  0 20px 25px -5px rgba(0,0,0,0.4), 0 8px 10px -6px rgba(0,0,0,0.2);
+  --shadow-card: 0 1px 3px rgba(0,0,0,0.2), 0 0 0 1px rgba(255,255,255,0.03);
+  --shadow-card-hover: 0 4px 12px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.05);
+
+  --gradient-card: linear-gradient(135deg, rgba(28,25,23,0.8) 0%, rgba(28,25,23,0.4) 100%);
+  --gradient-sidebar: linear-gradient(180deg, var(--stone-900) 0%, var(--stone-950) 100%);
 }
