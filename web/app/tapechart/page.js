@@ -80,7 +80,6 @@ export default function TapeChartPage() {
 
   useEffect(() => {
     if (scrollRef.current) {
-      // Scroll to roughly center on today
       const todayIdx = days.findIndex((d) => isToday(d));
       if (todayIdx > 0) {
         const cellWidth = 60;
@@ -89,13 +88,9 @@ export default function TapeChartPage() {
     }
   }, [data, days]);
 
-  if (loading && !data) return <LoadingState label="Loading tape chart..." />;
-  if (error) return <ErrorState message={error} onRetry={load} />;
-
   const rooms = data?.rooms || [];
   const reservations = data?.reservations || [];
 
-  // Build a map: roomId -> [{ startIdx, endIdx, reservation }]
   const reservationMap = useMemo(() => {
     const map = {};
     rooms.forEach((room) => { map[room.id] = []; });
@@ -106,19 +101,16 @@ export default function TapeChartPage() {
       const resEnd = new Date(res.check_out + "T00:00:00");
 
       const startIdx = days.findIndex((d) => formatDate(d) === formatDate(resStart) || (d > resStart && formatDate(d) === formatDate(resStart)));
-      // Find the day BEFORE check_out (half-open range)
       const endIdx = days.findIndex((d) => formatDate(d) >= formatDate(resEnd));
 
-      // Also handle: if res starts before our visible range
       let visStart = startIdx;
       if (startIdx === -1 && resEnd > startDate) {
         visStart = 0;
       } else if (startIdx === -1) {
-        return; // reservation is completely before our range
+        return;
       }
 
       let visEnd = endIdx === -1 ? 27 : endIdx - 1;
-      // Clamp
       visStart = Math.max(0, visStart);
       visEnd = Math.min(27, visEnd);
 
@@ -133,7 +125,6 @@ export default function TapeChartPage() {
     return map;
   }, [rooms, reservations, days, startDate]);
 
-  // Group rooms by floor
   const floorGroups = useMemo(() => {
     const groups = {};
     rooms.forEach((room) => {
@@ -143,6 +134,9 @@ export default function TapeChartPage() {
     });
     return Object.entries(groups).sort((a, b) => a[0].localeCompare(b[0]));
   }, [rooms]);
+
+  if (loading && !data) return <LoadingState label="Loading tape chart..." />;
+  if (error) return <ErrorState message={error} onRetry={load} />;
 
   return (
     <div className="space-y-5">
