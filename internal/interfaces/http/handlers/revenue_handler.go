@@ -236,9 +236,9 @@ func (h *RevenueHandler) ApplySeasonPrice(w http.ResponseWriter, r *http.Request
 	}
 
 	_, err := h.pool.Exec(ctx,
-		`INSERT INTO rate_seasons (tenant_id, room_type_id, start_date, end_date, price_cents, name)
+		`INSERT INTO rate_seasons (tenant_id, room_type_id, start_date, end_date, amount_cents, name)
 		 VALUES ($1, $2, $3, $3, $4, $5)
-		 ON CONFLICT (tenant_id, room_type_id, start_date) DO UPDATE SET price_cents = $4`,
+		 ON CONFLICT (tenant_id, room_type_id, start_date) DO UPDATE SET amount_cents = $4`,
 		tenantID, body.RoomTypeID, body.Date, body.NewPriceCents, "Dynamic Price")
 	if err != nil {
 		httputil.InternalServerError(w, "failed to apply price")

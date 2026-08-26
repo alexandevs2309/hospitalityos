@@ -145,7 +145,7 @@ func (h *GuestPortalHandler) GetPortalData(w http.ResponseWriter, r *http.Reques
 	p.BalanceCents = p.TotalCents - p.BalanceCents
 
 	folioRows, _ := h.pool.Query(ctx,
-		`SELECT id::text, description, amount_cents, entry_type, created_at::text
+		`SELECT id::text, description, amount_cents, type, created_at::text
 		 FROM folio_entries WHERE reservation_id = $1 AND tenant_id = $2 ORDER BY created_at`,
 		reservationID, tenantID)
 	defer folioRows.Close()
