@@ -26,10 +26,16 @@ NC='\033[0m'
 
 log() { echo -e "[$(date '+%H:%M:%S')] $1"; }
 
+BINARY="/tmp/hospitality-api-serve"
+
 start_backend() {
     log "${YELLOW}Starting backend on :${BACKEND_PORT}...${NC}"
     cd "$PROJECT_DIR"
-    nohup go run ./cmd/api/ > "$LOG_BACKEND" 2>&1 &
+    if [ ! -f "$BINARY" ] || [ ! -x "$BINARY" ]; then
+        log "${YELLOW}Building backend binary...${NC}"
+        go build -o "$BINARY" ./cmd/api/ 2>&1
+    fi
+    nohup "$BINARY" > "$LOG_BACKEND" 2>&1 &
     echo $! > "$PIDFILE_BACKEND"
     log "Backend PID: $(cat $PIDFILE_BACKEND)"
 }
@@ -80,6 +86,18 @@ case "${1:-run}" in
         sleep 8
         status
         ;;
+    rebuild)
+        log "${YELLOW}Rebuilding backend binary...${NC}"
+        rm -f "$BINARY"
+        export PATH="/home/alexander/go/bin:$PATH"
+        cd "$PROJECT_DIR" && go build -o "$BINARY" ./cmd/api/ 2>&1 && log "${GREEN}Build OK${NC}"
+        stop_all 2>/dev/null
+        sleep 1
+        start_backend
+        start_frontend
+        sleep 8
+        status
+        ;;
     stop)
         stop_all
         ;;
@@ -109,6 +127,6 @@ case "${1:-run}" in
         done
         ;;
     *)
-        echo "Usage: $0 {run|start|stop|status}"
+        echo "Usage: $0 {run|start|rebuild|stop|status}"
         ;;
 esac
