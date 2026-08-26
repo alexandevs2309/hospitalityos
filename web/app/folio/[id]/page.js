@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { Suspense, useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { getFolio, addFolioEntry, closeFolio } from "@/lib/api";
 import { Button, Card, CardContent, Input, Select, LoadingState, ErrorState, useToast } from "@/components/ui";
@@ -42,7 +42,7 @@ function formatDate(value) {
   });
 }
 
-export default function FolioPage() {
+function FolioContent() {
   const { id } = useParams();
   const router = useRouter();
   const toast = useToast();
@@ -274,5 +274,13 @@ export default function FolioPage() {
         )}
       </Card>
     </div>
+  );
+}
+
+export default function FolioPage() {
+  return (
+    <Suspense fallback={<div className="p-6"><div className="animate-pulse h-8 w-48 rounded" style={{ background: "var(--stone-200)" }} /></div>}>
+      <FolioContent />
+    </Suspense>
   );
 }

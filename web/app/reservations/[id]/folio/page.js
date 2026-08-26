@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { getFolio, addFolioEntry, closeFolio, createPayment } from "@/lib/api";
 import { Button, Card, CardContent, StatusBadge, Input, Select, LoadingState, ErrorState, useToast } from "@/components/ui";
@@ -47,7 +47,7 @@ const rowHover = {
   onMouseLeave: (e) => { e.currentTarget.style.background = "transparent"; },
 };
 
-export default function FolioPage() {
+function ReservationFolioContent() {
   const params = useParams();
   const router = useRouter();
   const reservationId = params?.id;
@@ -281,5 +281,13 @@ export default function FolioPage() {
         </Card>
       )}
     </div>
+  );
+}
+
+export default function ReservationFolioPage() {
+  return (
+    <Suspense fallback={<div className="p-6"><div className="animate-pulse h-8 w-48 rounded" style={{ background: "var(--stone-200)" }} /></div>}>
+      <ReservationFolioContent />
+    </Suspense>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { Suspense, useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import { getPortalData, portalSelfCheckIn, portalSelfCheckOut, portalCreateRequest, portalSubmitReview } from "@/lib/api";
 import { Button, Card, CardContent, Input, Select, Textarea, StatusBadge, useToast } from "@/components/ui";
@@ -37,7 +37,7 @@ function StarRating({ value, onChange }) {
   );
 }
 
-export default function PortalPage() {
+function PortalContent() {
   const params = useParams();
   const token = params.token;
   const toast = useToast();
@@ -240,5 +240,13 @@ export default function PortalPage() {
         )}
       </main>
     </div>
+  );
+}
+
+export default function PortalPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="animate-pulse h-8 w-48 rounded" style={{ background: "var(--stone-200)" }} /></div>}>
+      <PortalContent />
+    </Suspense>
   );
 }

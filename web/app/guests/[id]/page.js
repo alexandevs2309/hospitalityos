@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { Suspense, useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { getGuestProfile, addGuestPreference, addGuestTag, removeGuestTag } from "@/lib/api";
 import { Button, Card, CardContent, StatusBadge, Input, LoadingState, ErrorState, useToast } from "@/components/ui";
@@ -28,7 +28,7 @@ function formatDate(value) {
   return new Date(value).toLocaleDateString("es-DO", { day: "2-digit", month: "short", year: "numeric" });
 }
 
-export default function GuestProfilePage() {
+function GuestProfileContent() {
   const { id } = useParams();
   const router = useRouter();
   const toast = useToast();
@@ -231,5 +231,13 @@ export default function GuestProfilePage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function GuestProfilePage() {
+  return (
+    <Suspense fallback={<div className="p-6"><div className="animate-pulse h-8 w-48 rounded" style={{ background: "var(--stone-200)" }} /></div>}>
+      <GuestProfileContent />
+    </Suspense>
   );
 }
