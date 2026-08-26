@@ -25,6 +25,7 @@ export default function ConfirmContent() {
 
   const [reservation, setReservation] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [sendingWhatsApp, setSendingWhatsApp] = useState(false);
 
   const nights = checkIn && checkOut
@@ -66,7 +67,7 @@ export default function ConfirmContent() {
           });
         }
       } catch (err) {
-        console.error("Error loading reservation:", err);
+        setError(err.message || "Error al cargar la reservacion");
       } finally {
         setLoading(false);
       }
@@ -116,6 +117,20 @@ export default function ConfirmContent() {
     return (
       <div className="animate-fade-in min-h-[60vh] flex items-center justify-center">
         <div className="animate-spin w-8 h-8 rounded-full border-2 border-stone-200 border-t-stone-900" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="animate-fade-in min-h-[60vh] flex items-center justify-center">
+        <Card className="max-w-md w-full">
+          <CardContent className="p-6 text-center">
+            <p style={{ color: "var(--rose-600)", fontWeight: 600, marginBottom: "8px" }}>Error</p>
+            <p style={{ fontSize: "var(--text-sm)", color: "var(--stone-600)", marginBottom: "16px" }}>{error}</p>
+            <Button onClick={() => router.push("/book/search")} variant="secondary">Volver a buscar</Button>
+          </CardContent>
+        </Card>
       </div>
     );
   }

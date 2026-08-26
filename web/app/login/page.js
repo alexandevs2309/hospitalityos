@@ -32,7 +32,7 @@ export default function LoginPage() {
       {/* Left — Branding */}
       <div
         className="hidden lg:flex lg:w-1/2 relative overflow-hidden items-center justify-center"
-        style={{ background: "linear-gradient(135deg, #1C1917 0%, #292524 50%, #44403C 100%)" }}
+        style={{ background: "var(--gradient-stone)" }}
       >
         {/* Decorative circles */}
         <div className="absolute inset-0">

@@ -255,7 +255,7 @@ function Topbar({ title }) {
       style={{
         left: "var(--sidebar-width)",
         height: "var(--topbar-height)",
-        background: "rgba(250,250,249,0.8)",
+        background: "var(--glass-bg)",
         backdropFilter: "blur(12px)",
         WebkitBackdropFilter: "blur(12px)",
         borderBottom: "1px solid var(--stone-200)",
@@ -312,7 +312,7 @@ function AppLayout({ children }) {
       {sidebarOpen && (
         <div
           className="lg:hidden fixed inset-0 z-30 animate-backdrop-in"
-          style={{ background: "rgba(0,0,0,0.4)", backdropFilter: "blur(4px)" }}
+          style={{ background: "var(--overlay-bg)", backdropFilter: "blur(4px)" }}
           onClick={() => setSidebarOpen(false)}
         />
       )}

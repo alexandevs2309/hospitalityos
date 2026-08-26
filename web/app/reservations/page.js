@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { listReservations, createReservation, cancelReservation, checkInReservation, checkOutReservation } from "@/lib/api";
 import Link from "next/link";
-import { Button, Card, StatusBadge, Modal, Input, Select, FilterPills, useToast, SkeletonTable, EmptyState } from "@/components/ui";
+import { Button, Card, StatusBadge, Modal, Input, Select, FilterPills, useToast, SkeletonTable, EmptyState, ErrorState } from "@/components/ui";
 import { Plus, Calendar, CreditCard, User, X, Check, LogOut, ExternalLink, ChevronDown, Search, Loader2 } from "lucide-react";
 
 const statusConfig = {

@@ -279,7 +279,7 @@ export default function WhatsAppPage() {
                             color: "var(--stone-900)",
                             borderTopRightRadius: isOut ? "4px" : undefined,
                             borderTopLeftRadius: !isOut ? "4px" : undefined,
-                            boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
+                            boxShadow: "var(--shadow-message)",
                           }}
                         >
                           <p style={{ fontSize: "var(--text-sm)", lineHeight: 1.5, whiteSpace: "pre-wrap" }}>{msg.content}</p>

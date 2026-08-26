@@ -69,7 +69,7 @@ export default function RegisterPage() {
       {/* Left — Branding */}
       <div
         className="hidden lg:flex lg:w-1/2 relative overflow-hidden items-center justify-center"
-        style={{ background: "linear-gradient(135deg, #1C1917 0%, #292524 50%, #44403C 100%)" }}
+        style={{ background: "var(--gradient-stone)" }}
       >
         <div className="absolute inset-0">
           <div className="absolute top-1/4 -left-20 w-80 h-80 rounded-full opacity-10" style={{ background: "var(--gold-500)" }} />

@@ -40,37 +40,37 @@
   --blue-700: #1D4ED8;
 
   /* ── Semantic: Status ── */
-  --emerald-50:  #ECFDF5;
-  --emerald-100: #D1FAE5;
-  --emerald-200: #A7F3D0;
-  --emerald-400: #34D399;
-  --emerald-500: #10B981;
-  --emerald-600: #059669;
-  --emerald-700: #047857;
+  --success-50:  #ECFDF5;
+  --success-100: #D1FAE5;
+  --success-200: #A7F3D0;
+  --success-400: #34D399;
+  --success-500: #10B981;
+  --success-600: #059669;
+  --success-700: #047857;
 
-  --amber-50:  #FFFBEB;
-  --amber-100: #FEF3C7;
-  --amber-200: #FDE68A;
-  --amber-400: #FBBF24;
-  --amber-500: #F59E0B;
-  --amber-600: #D97706;
-  --amber-700: #B45309;
+  --warning-50:  #FFFBEB;
+  --warning-100: #FEF3C7;
+  --warning-200: #FDE68A;
+  --warning-400: #FBBF24;
+  --warning-500: #F59E0B;
+  --warning-600: #D97706;
+  --warning-700: #B45309;
 
-  --rose-50:  #FFF1F2;
-  --rose-100: #FFE4E6;
-  --rose-200: #FECDD3;
-  --rose-400: #FB7185;
-  --rose-500: #F43F5E;
-  --rose-600: #E11D48;
-  --rose-700: #BE123C;
+  --danger-50:  #FFF1F2;
+  --danger-100: #FFE4E6;
+  --danger-200: #FECDD3;
+  --danger-400: #FB7185;
+  --danger-500: #F43F5E;
+  --danger-600: #E11D48;
+  --danger-700: #BE123C;
 
-  --sky-50:  #F0F9FF;
-  --sky-100: #E0F2FE;
-  --sky-200: #BAE6FD;
-  --sky-400: #38BDF8;
-  --sky-500: #0EA5E9;
-  --sky-600: #0284C7;
-  --sky-700: #0369A1;
+  --info-50:  #F0F9FF;
+  --info-100: #E0F2FE;
+  --info-200: #BAE6FD;
+  --info-400: #38BDF8;
+  --info-500: #0EA5E9;
+  --info-600: #0284C7;
+  --info-700: #0369A1;
 
   --violet-50:  #F5F3FF;
   --violet-100: #EDE9FE;
@@ -144,9 +144,16 @@
   --z-modal: 90;
   --z-toast: 100;
 
+  /* ── Glass / Overlay ── */
+  --glass-bg: rgba(255,255,255,0.7);
+  --glass-bg-dark: rgba(28,25,23,0.7);
+  --overlay-bg: rgba(0,0,0,0.4);
+  --shadow-message: 0 1px 2px rgba(0,0,0,0.05);
+
   /* ── Gradients ── */
   --gradient-card: linear-gradient(135deg, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0.4) 100%);
   --gradient-sidebar: linear-gradient(180deg, var(--stone-900) 0%, var(--stone-950) 100%);
+  --gradient-stone: linear-gradient(135deg, var(--stone-900) 0%, var(--stone-800) 50%, var(--stone-700) 100%);
   --gradient-gold: linear-gradient(135deg, var(--gold-400) 0%, var(--gold-600) 100%);
   --gradient-blue: linear-gradient(135deg, var(--blue-500) 0%, var(--blue-600) 100%);
   --gradient-emerald: linear-gradient(135deg, var(--emerald-500) 0%, var(--emerald-600) 100%);

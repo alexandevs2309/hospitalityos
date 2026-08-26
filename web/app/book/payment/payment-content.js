@@ -63,11 +63,11 @@ export default function PaymentPage() {
         style: {
           base: {
             fontSize: "16px",
-            color: "#1c1917",
+            color: "#1c1917", // Stripe requires hex — maps to --stone-900
             fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
-            "::placeholder": { color: "#78716c" },
+            "::placeholder": { color: "#78716c" }, // maps to --stone-500
           },
-          invalid: { color: "#e11d48", iconColor: "#e11d48" },
+          invalid: { color: "#e11d48", iconColor: "#e11d48" }, // maps to --rose-600
         },
       });
       card.mount(cardElementRef.current);

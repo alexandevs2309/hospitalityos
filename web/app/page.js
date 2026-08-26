@@ -205,7 +205,7 @@ export default function DashboardPage() {
             <p className="mt-1 text-sm text-white/60 capitalize">{dateStr}</p>
           </div>
           <div className="hidden sm:flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse-soft" />
+            <span className="w-2 h-2 rounded-full animate-pulse-soft" style={{ background: "var(--emerald-400)" }} />
             <span className="text-xs font-medium text-white/60">Sistema operativo</span>
           </div>
         </div>
@@ -217,7 +217,7 @@ export default function DashboardPage() {
           label="Habitaciones"
           value={stats.total}
           icon={BedDouble}
-          gradient="linear-gradient(135deg, #1C1917 0%, #44403C 100%)"
+          gradient="var(--gradient-stone)"
           loading={loading}
         />
         <KPICard
@@ -225,7 +225,7 @@ export default function DashboardPage() {
           value={stats.available}
           delta={12}
           icon={Home}
-          gradient="linear-gradient(135deg, #059669 0%, #047857 100%)"
+          gradient="var(--gradient-emerald)"
           loading={loading}
         />
         <KPICard
@@ -233,7 +233,7 @@ export default function DashboardPage() {
           value={`${occRate}%`}
           delta={-3}
           icon={TrendingUp}
-          gradient="linear-gradient(135deg, #D4A853 0%, #B8922E 100%)"
+          gradient="var(--gradient-gold)"
           loading={loading}
         />
         <KPICard
@@ -241,7 +241,7 @@ export default function DashboardPage() {
           value={stats.reservations}
           delta={5}
           icon={Calendar}
-          gradient="linear-gradient(135deg, #3B82F6 0%, #2563EB 100%)"
+          gradient="var(--gradient-blue)"
           loading={loading}
         />
       </div>
