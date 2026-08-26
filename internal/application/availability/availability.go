@@ -31,6 +31,23 @@ func (e *Engine) IsRoomAvailable(ctx context.Context, tenantID, roomID string, c
 	return !exists, nil
 }
 
+func (e *Engine) IsRoomAvailableExcluding(ctx context.Context, tenantID, roomID string, checkIn, checkOut time.Time, excludeID string) (bool, error) {
+	var exists bool
+	err := e.pool.QueryRow(ctx, `
+		SELECT EXISTS (
+			SELECT 1 FROM reservations
+			WHERE tenant_id = $1 AND room_id = $2
+			AND status IN ('confirmed', 'checked_in')
+			AND check_in < $4 AND check_out > $3
+			AND id != $5
+		)
+	`, tenantID, roomID, checkIn, checkOut, excludeID).Scan(&exists)
+	if err != nil {
+		return false, err
+	}
+	return !exists, nil
+}
+
 type AvailableRoom struct {
 	RoomID     string `json:"room_id"`
 	RoomNumber string `json:"room_number"`

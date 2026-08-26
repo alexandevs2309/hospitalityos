@@ -247,6 +247,95 @@ func (h *ReservationHandler) Get(w http.ResponseWriter, r *http.Request) {
 	httputil.JSON(w, http.StatusOK, res)
 }
 
+type UpdateReservationRequest struct {
+	RoomID     string `json:"room_id"`
+	CheckIn    string `json:"check_in"`
+	CheckOut   string `json:"check_out"`
+	Adults     int    `json:"adults"`
+	Children   int    `json:"children"`
+	TotalCents int64  `json:"total_cents"`
+}
+
+func (h *ReservationHandler) Update(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	tenantID := middleware.TenantFromContext(r.Context())
+	ctx := r.Context()
+
+	var req UpdateReservationRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		httputil.BadRequest(w, "invalid request body")
+		return
+	}
+
+	var currentStatus string
+	err := h.pool.QueryRow(ctx,
+		`SELECT status::text FROM reservations WHERE id=$1 AND tenant_id=$2`, id, tenantID).
+		Scan(&currentStatus)
+	if err != nil {
+		httputil.NotFound(w, "reservation not found")
+		return
+	}
+	if currentStatus != "pending" && currentStatus != "confirmed" {
+		httputil.Conflict(w, "can only update pending or confirmed reservations")
+		return
+	}
+
+	checkIn, err := httputil.ParseDate(req.CheckIn)
+	if err != nil {
+		httputil.BadRequest(w, "invalid check_in format (YYYY-MM-DD)")
+		return
+	}
+	checkOut, err := httputil.ParseDate(req.CheckOut)
+	if err != nil {
+		httputil.BadRequest(w, "invalid check_out format (YYYY-MM-DD)")
+		return
+	}
+	if !checkOut.After(checkIn) {
+		httputil.BadRequest(w, "check_out must be after check_in")
+		return
+	}
+	if req.RoomID == "" {
+		httputil.BadRequest(w, "room_id required")
+		return
+	}
+	if req.Adults < 1 {
+		httputil.BadRequest(w, "at least 1 adult required")
+		return
+	}
+	if req.TotalCents <= 0 {
+		httputil.BadRequest(w, "total_cents must be positive")
+		return
+	}
+
+	if h.availability != nil {
+		available, err := h.availability.IsRoomAvailableExcluding(ctx, tenantID, req.RoomID, checkIn, checkOut, id)
+		if err != nil {
+			httputil.InternalServerError(w, "failed to check availability")
+			return
+		}
+		if !available {
+			httputil.Conflict(w, "room is not available for the selected dates")
+			return
+		}
+	}
+
+	tag, err := h.pool.Exec(ctx, `
+		UPDATE reservations
+		SET room_id=$1, check_in=$2, check_out=$3, adults=$4, children=$5, total_cents=$6, updated_at=NOW()
+		WHERE id=$7 AND tenant_id=$8 AND status IN ('pending','confirmed')
+	`, req.RoomID, checkIn, checkOut, req.Adults, req.Children, req.TotalCents, id, tenantID)
+	if err != nil {
+		httputil.InternalServerError(w, "failed to update reservation")
+		return
+	}
+	if tag.RowsAffected() == 0 {
+		httputil.NotFound(w, "reservation not found or not updatable")
+		return
+	}
+
+	httputil.JSON(w, http.StatusOK, map[string]string{"status": "updated"})
+}
+
 func (h *ReservationHandler) CheckIn(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	tenantID := httputil.ExtractTenantID(r)

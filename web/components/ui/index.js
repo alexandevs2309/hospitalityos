@@ -471,3 +471,60 @@ export function useToast() {
   if (!ctx) throw new Error("useToast must be used within ToastProvider");
   return ctx;
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   DRAWER — slide-in panel from the right
+   ═══════════════════════════════════════════════════════════════ */
+export function Drawer({ open, onClose, title, children, width = "440px" }) {
+  useEffect(() => {
+    if (!open) return undefined;
+    function onKeyDown(e) { if (e.key === "Escape") onClose(); }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [open, onClose]);
+
+  if (!open) return null;
+
+  return (
+    <div className="fixed inset-0" style={{ zIndex: "var(--z-modal)" }}>
+      <div
+        className="absolute inset-0 animate-backdrop-in"
+        style={{ background: "var(--overlay-bg)", backdropFilter: "blur(4px)", WebkitBackdropFilter: "blur(4px)" }}
+        onClick={onClose}
+      />
+      <div
+        role="dialog"
+        aria-modal="true"
+        className="absolute top-0 right-0 h-full animate-slide-in-right flex flex-col"
+        style={{
+          width,
+          maxWidth: "100vw",
+          background: "white",
+          boxShadow: "var(--shadow-xl)",
+        }}
+      >
+        <div
+          className="flex items-center justify-between shrink-0"
+          style={{ padding: "16px 24px", borderBottom: "1px solid var(--stone-100)" }}
+        >
+          <h2 style={{ fontSize: "var(--text-lg)", fontWeight: 600, color: "var(--stone-900)" }}>{title}</h2>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Cerrar"
+            style={{ padding: "6px", borderRadius: "var(--radius)", color: "var(--stone-400)", background: "transparent", border: "none", cursor: "pointer" }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = "var(--stone-100)"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+          >
+            <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        <div className="flex-1 overflow-y-auto" style={{ padding: "24px" }}>
+          {children}
+        </div>
+      </div>
+    </div>
+  );
+}

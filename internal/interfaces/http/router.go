@@ -99,6 +99,7 @@ func NewRouter(
 				r.Post("/reservations/{id}/check-out", reservationHandler.CheckOut)
 				r.Get("/reservations", reservationHandler.List)
 				r.Get("/reservations/{id}", reservationHandler.Get)
+				r.Patch("/reservations/{id}", reservationHandler.Update)
 
 				r.Post("/guests", guestHandler.Create)
 				r.Get("/guests", guestHandler.List)

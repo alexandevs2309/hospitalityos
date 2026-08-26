@@ -86,6 +86,14 @@ export function cancelReservation(reservationId, tenantId) {
   });
 }
 
+export function updateReservation(id, data, tenantId) {
+  return request(`/reservations/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(data),
+    tenantId,
+  });
+}
+
 export function checkInReservation(id, tenantId) {
   return request(`/reservations/${id}/check-in`, {
     method: "POST",
