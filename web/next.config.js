@@ -1,10 +1,12 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  output: "standalone",
   async rewrites() {
+    const backendUrl = process.env.BACKEND_URL || "http://localhost:8081";
     return [
       {
         source: "/api/:path*",
-        destination: "http://localhost:8081/v1/:path*",
+        destination: `${backendUrl}/v1/:path*`,
       },
     ];
   },

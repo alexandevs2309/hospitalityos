@@ -71,11 +71,16 @@ func NewRouter(
 			r.Post("/auth/register", registerHandler.Register)
 		})
 
-		// Public booking engine endpoints (no staff auth required, but tenant required)
+		// Public booking engine endpoints (no staff auth required, tenant from header)
 		r.Group(func(r chi.Router) {
-			r.Use(middleware.Tenant)
-			r.Post("/booking/reservations", reservationHandler.CreatePublic)
-			r.Post("/booking/payments/intent", paymentGatewayHandler.CreatePaymentIntent)
+			r.Use(middleware.PublicTenant)
+			r.Get("/public/availability", availabilityHandler.CheckAvailability)
+			r.Get("/public/room-types", roomTypeHandler.List)
+			r.Get("/public/rates", rateHandler.List)
+			r.Post("/public/guests", guestHandler.Create)
+			r.Post("/public/reservations", reservationHandler.CreatePublic)
+			r.Get("/public/reservations/{id}", reservationHandler.GetPublic)
+			r.Post("/public/payments/intent", paymentGatewayHandler.CreatePaymentIntent)
 		})
 
 		// Guest Portal endpoints (public, token-based — no auth required)

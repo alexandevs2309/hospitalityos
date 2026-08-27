@@ -1,0 +1,50 @@
+services:
+  postgres:
+    image: postgres:17-bookworm
+    container_name: hospitalityos-db
+    environment:
+      POSTGRES_DB: hospitality
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: hospitality_secret_2026
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d hospitality"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: always
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: hospitalityos-api
+    ports:
+      - "8081:8081"
+    environment:
+      DATABASE_URL: postgres://postgres:hospitality_secret_2026@postgres:5432/hospitality?sslmode=disable
+      JWT_SECRET: hospitality-dev-secret-key-2026
+      SEED_SECRET: dev-seed
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: always
+
+  frontend:
+    build:
+      context: ./web
+      dockerfile: Dockerfile.frontend
+      args:
+        BACKEND_URL: http://backend:8081
+    container_name: hospitalityos-web
+    ports:
+      - "3001:3001"
+    depends_on:
+      - backend
+    restart: always
+
+volumes:
+  pgdata:

@@ -57,8 +57,57 @@ async function request(path, options = {}) {
   return res.json();
 }
 
+async function publicRequest(path, options = {}) {
+  const { tenantId, ...fetchOpts } = options;
+  const res = await fetch(`${API_BASE}${path}`, {
+    ...fetchOpts,
+    headers: {
+      "Content-Type": "application/json",
+      "X-Tenant-ID": tenantId || "eden-hotel",
+      ...(fetchOpts.headers || {}),
+    },
+  });
+  if (!res.ok) {
+    const error = await res.text();
+    throw new Error(error || `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
 export function checkAvailability(checkIn, checkOut, tenantId) {
   return request(`/availability?check_in=${checkIn}&check_out=${checkOut}`, { tenantId });
+}
+
+export function publicCheckAvailability(checkIn, checkOut, tenantId) {
+  return publicRequest(`/public/availability?check_in=${checkIn}&check_out=${checkOut}`, { tenantId });
+}
+
+export function publicListRoomTypes(tenantId) {
+  return publicRequest(`/public/room-types`, { tenantId });
+}
+
+export function publicListRates(tenantId) {
+  return publicRequest(`/public/rates`, { tenantId });
+}
+
+export function publicCreateGuest(data, tenantId) {
+  return publicRequest("/public/guests", {
+    method: "POST",
+    body: JSON.stringify(data),
+    tenantId,
+  });
+}
+
+export function publicCreateReservation(data, tenantId) {
+  return publicRequest("/public/reservations", {
+    method: "POST",
+    body: JSON.stringify(data),
+    tenantId,
+  });
+}
+
+export function publicGetReservation(id, tenantId) {
+  return publicRequest(`/public/reservations/${id}`, { tenantId });
 }
 
 export function listReservations(tenantId, status) {

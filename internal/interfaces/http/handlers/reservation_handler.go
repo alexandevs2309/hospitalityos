@@ -46,6 +46,7 @@ type CreateReservationRequest struct {
 type CreatePublicReservationRequest struct {
 	ReservationID string `json:"reservation_id"`
 	GuestID       string `json:"guest_id"`
+	RoomID        string `json:"room_id"`
 	RoomTypeID    string `json:"room_type_id"`
 	RateID        string `json:"rate_id"`
 	CheckIn       string `json:"check_in"`
@@ -247,6 +248,47 @@ func (h *ReservationHandler) Get(w http.ResponseWriter, r *http.Request) {
 	httputil.JSON(w, http.StatusOK, res)
 }
 
+func (h *ReservationHandler) GetPublic(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	tenantID := httputil.ExtractTenantID(r)
+	ctx := r.Context()
+
+	var res struct {
+		ID         string `json:"id"`
+		TenantID   string `json:"tenant_id"`
+		GuestID    string `json:"guest_id"`
+		RoomID     string `json:"room_id"`
+		RateID     string `json:"rate_id"`
+		CheckIn    string `json:"check_in"`
+		CheckOut   string `json:"check_out"`
+		Adults     int    `json:"adults"`
+		Children   int    `json:"children"`
+		TotalCents int64  `json:"total_cents"`
+		Currency   string `json:"currency"`
+		Status     string `json:"status"`
+	}
+	err := h.pool.QueryRow(ctx,
+		`SELECT id, tenant_id, guest_id, room_id, COALESCE(rate_id,''), check_in::text, check_out::text, adults, children, total_cents, COALESCE(currency,'USD'), status::text FROM reservations WHERE id=$1 AND tenant_id=$2`, id, tenantID).
+		Scan(&res.ID, &res.TenantID, &res.GuestID, &res.RoomID, &res.RateID, &res.CheckIn, &res.CheckOut, &res.Adults, &res.Children, &res.TotalCents, &res.Currency, &res.Status)
+	if err != nil {
+		httputil.NotFound(w, "reservation not found")
+		return
+	}
+
+	// Fetch room + guest info for display
+	var roomNumber, roomType, guestName, guestEmail string
+	_ = h.pool.QueryRow(ctx, `SELECT r.number, rt.name FROM rooms r LEFT JOIN room_types rt ON r.room_type_id = rt.id WHERE r.id = $1 AND r.tenant_id = $2`, res.RoomID, tenantID).Scan(&roomNumber, &roomType)
+	_ = h.pool.QueryRow(ctx, `SELECT first_name, last_name, email FROM guests WHERE id = $1 AND tenant_id = $2`, res.GuestID, tenantID).Scan(&guestName, &guestEmail, &guestEmail)
+
+	httputil.JSON(w, http.StatusOK, map[string]interface{}{
+		"id": res.ID, "room_id": res.RoomID, "guest_id": res.GuestID,
+		"room_number": roomNumber, "room_type": roomType, "guest_name": guestName,
+		"check_in": res.CheckIn, "check_out": res.CheckOut,
+		"adults": res.Adults, "children": res.Children,
+		"total_cents": res.TotalCents, "currency": res.Currency, "status": res.Status,
+	})
+}
+
 type UpdateReservationRequest struct {
 	RoomID     string `json:"room_id"`
 	CheckIn    string `json:"check_in"`
@@ -377,16 +419,12 @@ func (h *ReservationHandler) CreatePublic(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	if req.ReservationID == "" || req.GuestID == "" || req.RoomTypeID == "" || req.CheckIn == "" || req.CheckOut == "" {
-		httputil.BadRequest(w, "reservation_id, guest_id, room_type_id, check_in, check_out required")
+	if req.ReservationID == "" || req.GuestID == "" || req.CheckIn == "" || req.CheckOut == "" {
+		httputil.BadRequest(w, "reservation_id, guest_id, check_in, check_out required")
 		return
 	}
 	if req.Adults < 1 {
 		httputil.BadRequest(w, "at least 1 adult required")
-		return
-	}
-	if req.TotalCents <= 0 {
-		httputil.BadRequest(w, "total_cents must be positive")
 		return
 	}
 
@@ -407,17 +445,32 @@ func (h *ReservationHandler) CreatePublic(w http.ResponseWriter, r *http.Request
 
 	tenantID := middleware.TenantFromContext(r.Context())
 
-	// Find an available room of the requested type
+	// Determine the room: explicit room_id or first available of the requested type
 	var roomID string
-	err = h.pool.QueryRow(r.Context(), `
-		SELECT id FROM rooms
-		WHERE tenant_id = $1 AND room_type_id = $2 AND status = 'available'
-		ORDER BY number
-		LIMIT 1
-	`, tenantID, req.RoomTypeID).Scan(&roomID)
-	if err != nil {
-		httputil.Conflict(w, "no available rooms of the selected type for these dates")
-		return
+	if req.RoomID != "" {
+		err := h.pool.QueryRow(r.Context(), `
+			SELECT id FROM rooms
+			WHERE id = $1 AND tenant_id = $2 AND status = 'available'
+		`, req.RoomID, tenantID).Scan(&roomID)
+		if err != nil {
+			httputil.Conflict(w, "selected room is not available")
+			return
+		}
+	} else {
+		if req.RoomTypeID == "" {
+			httputil.BadRequest(w, "room_id or room_type_id required")
+			return
+		}
+		err := h.pool.QueryRow(r.Context(), `
+			SELECT id FROM rooms
+			WHERE tenant_id = $1 AND room_type_id = $2 AND status = 'available'
+			ORDER BY number
+			LIMIT 1
+		`, tenantID, req.RoomTypeID).Scan(&roomID)
+		if err != nil {
+			httputil.Conflict(w, "no available rooms of the selected type for these dates")
+			return
+		}
 	}
 
 	// Check availability for the specific room
@@ -433,6 +486,44 @@ func (h *ReservationHandler) CreatePublic(w http.ResponseWriter, r *http.Request
 		}
 	}
 
+	// Compute total server-side (never trust client total): rate × nights
+	var basePriceCents int64
+	currency := req.Currency
+	var currencyFromType string
+	err = h.pool.QueryRow(r.Context(), `
+		SELECT COALESCE(rt.base_price_cents, 0), COALESCE(rt.currency, 'USD')
+		FROM rooms r
+		JOIN room_types rt ON rt.id = r.room_type_id
+		WHERE r.id = $1 AND r.tenant_id = $2
+	`, roomID, tenantID).Scan(&basePriceCents, &currencyFromType)
+	if err != nil {
+		httputil.InternalServerError(w, "failed to load room pricing")
+		return
+	}
+	if basePriceCents <= 0 {
+		httputil.InternalServerError(w, "room has no configured price")
+		return
+	}
+	if currency == "" {
+		currency = currencyFromType
+	}
+
+	// If a rate_id was provided, prefer its nightly price
+	if req.RateID != "" {
+		var rateCents int64
+		if err := h.pool.QueryRow(r.Context(), `
+			SELECT COALESCE(amount_cents, 0) FROM rates WHERE id = $1 AND tenant_id = $2
+		`, req.RateID, tenantID).Scan(&rateCents); err == nil && rateCents > 0 {
+			basePriceCents = rateCents
+		}
+	}
+
+	nights := int(checkOut.Sub(checkIn).Hours() / 24)
+	if nights < 1 {
+		nights = 1
+	}
+	totalCents := basePriceCents * int64(nights)
+
 	cmd := reservation.CreateReservationCommand{
 		ReservationID: req.ReservationID,
 		TenantID:      tenantID,
@@ -443,8 +534,8 @@ func (h *ReservationHandler) CreatePublic(w http.ResponseWriter, r *http.Request
 		CheckOut:      checkOut,
 		Adults:        req.Adults,
 		Children:      req.Children,
-		TotalCents:    req.TotalCents,
-		Currency:      req.Currency,
+		TotalCents:    totalCents,
+		Currency:      currency,
 	}
 
 	if err := h.createHandler.Handle(r.Context(), cmd); err != nil {
@@ -452,5 +543,8 @@ func (h *ReservationHandler) CreatePublic(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	httputil.JSON(w, http.StatusCreated, map[string]string{"id": req.ReservationID, "room_id": roomID})
+	httputil.JSON(w, http.StatusCreated, map[string]interface{}{
+		"id": req.ReservationID, "room_id": roomID,
+		"total_cents": totalCents, "currency": currency,
+	})
 }

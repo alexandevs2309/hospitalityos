@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { checkAvailability, listRoomTypes } from "@/lib/api";
+import { publicCheckAvailability, publicListRoomTypes } from "@/lib/api";
 import { Button, Card, CardContent, LoadingState, ErrorState, EmptyState, useToast } from "@/components/ui";
 import { Home, Users, ChevronLeft, ChevronRight, Star, Wifi, Coffee, Bath, Check } from "lucide-react";
 
@@ -40,12 +40,28 @@ export default function SelectContent() {
       setError(null);
       try {
         const [avail, types] = await Promise.all([
-          checkAvailability(checkIn, checkOut, "eden-hotel"),
-          listRoomTypes("eden-hotel"),
+          publicCheckAvailability(checkIn, checkOut, "eden-hotel"),
+          publicListRoomTypes("eden-hotel"),
         ]);
-        setRooms(Array.isArray(avail) ? avail : avail.rooms || []);
+        const roomList = Array.isArray(avail) ? avail : avail.rooms || [];
         const typeMap = {};
-        (Array.isArray(types) ? types : types.room_types || []).forEach(t => { typeMap[t.id] = t; });
+        const typesList = Array.isArray(types) ? types : types.room_types || [];
+        typesList.forEach(t => { typeMap[t.id] = t; });
+        const enriched = roomList.map(r => {
+          const typeId = r.room_type_id || "";
+          const type = typeMap[typeId] || {};
+          return {
+            ...r,
+            room_id: r.room_id || r.id,
+            room_number: r.room_number || r.number || "",
+            room_type_id: typeId,
+            room_type_name: type.name || r.room_type || "Habitación",
+            capacity: type.capacity || 2,
+            price_cents: r.price_cents || r.total_cents || 0,
+            total_cents: r.price_cents ? r.price_cents * nights : (r.total_cents || 0),
+          };
+        });
+        setRooms(enriched);
         setRoomTypes(typeMap);
       } catch (e) {
         setError(e.message || "Error al buscar disponibilidad");
@@ -64,11 +80,12 @@ export default function SelectContent() {
     if (!selectedRoom) return;
     const params = new URLSearchParams({
       checkIn, checkOut, adults: String(adults), children: String(children),
-      roomId: selectedRoom.id || selectedRoom.room_id,
+      roomId: selectedRoom.room_id || selectedRoom.id || "",
       roomTypeId: selectedRoom.room_type_id || "",
-      roomTypeName: roomTypes[selectedRoom.room_type_id]?.name || "Habitación",
-      roomNumber: selectedRoom.number || selectedRoom.room_number || "",
-      totalCents: String(selectedRoom.total_cents || selectedRoom.price_cents || 0),
+      roomTypeName: selectedRoom.room_type_name || roomTypes[selectedRoom.room_type_id]?.name || "Habitación",
+      roomNumber: selectedRoom.room_number || selectedRoom.number || "",
+      totalCents: String(selectedRoom.total_cents || 0),
+      priceCents: String(selectedRoom.price_cents || 0),
     });
     router.push(`/book/guest?${params.toString()}`);
   }
@@ -110,10 +127,10 @@ export default function SelectContent() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {rooms.map((room, i) => {
             const type = roomTypes[room.room_type_id] || {};
-            const isSelected = selectedRoom?.id === room.id || selectedRoom?.room_id === room.room_id;
+            const isSelected = selectedRoom?.room_id === room.room_id || selectedRoom?.id === room.id;
             return (
               <button
-                key={room.id || room.room_id || i}
+                key={room.room_id || room.id || i}
                 onClick={() => handleSelect(room)}
                 className="text-left rounded-xl transition-all"
                 style={{
@@ -132,10 +149,10 @@ export default function SelectContent() {
                   <div className="flex items-start justify-between mb-2">
                     <div>
                       <h3 style={{ fontSize: "var(--text-base)", fontWeight: 600, color: "var(--stone-900)" }}>
-                        {room.number || room.room_number || `Habitacion ${i + 1}`}
+                        {room.room_number || room.number || `Habitacion ${i + 1}`}
                       </h3>
                       <p style={{ fontSize: "var(--text-sm)", color: "var(--stone-500)" }}>
-                        {type.name || "Habitacion"}
+                        {type.name || room.room_type_name || "Habitacion"}
                       </p>
                     </div>
                     {isSelected && (
@@ -148,9 +165,9 @@ export default function SelectContent() {
                     )}
                   </div>
                   <div className="flex items-center gap-3 mb-3">
-                    {type.capacity && (
+                    {room.capacity && (
                       <span className="flex items-center gap-1" style={{ fontSize: "var(--text-xs)", color: "var(--stone-500)" }}>
-                        <Users size={12} /> {type.capacity}
+                        <Users size={12} /> {room.capacity}
                       </span>
                     )}
                     <span className="flex items-center gap-1" style={{ fontSize: "var(--text-xs)", color: "var(--stone-500)" }}>
@@ -158,9 +175,14 @@ export default function SelectContent() {
                     </span>
                   </div>
                   <div className="flex items-center justify-between pt-2" style={{ borderTop: "1px solid var(--stone-100)" }}>
-                    <span style={{ fontSize: "var(--text-lg)", fontWeight: 700, color: "var(--stone-900)" }}>
-                      {formatMoney(room.total_cents || room.price_cents)}
-                    </span>
+                    <div className="flex flex-col gap-1">
+                      <span style={{ fontSize: "var(--text-lg)", fontWeight: 700, color: "var(--stone-900)" }}>
+                        {formatMoney(room.total_cents)}
+                      </span>
+                      <span style={{ fontSize: "var(--text-xs)", color: "var(--stone-400)" }}>
+                        {formatMoney(room.price_cents)} / noche
+                      </span>
+                    </div>
                     <span style={{ fontSize: "var(--text-xs)", color: "var(--stone-400)" }}>
                       {nights} noche{nights > 1 ? "s" : ""}
                     </span>
